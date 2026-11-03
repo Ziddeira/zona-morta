@@ -2,7 +2,7 @@ import { THREE, makeChibi, animChibi, Grid, moveCircle, rand, pick, toast, sfx, 
 import { ITENS, ARMAS, FABRICAR, custoTier, ESTRUTURAS, CUSTO_ESTRUTURA, PROFISSOES, DIFICULDADES, AREAS, CONSUMIVEIS, LOJA, LIBERAR_AREA, MOCHILA_MAX, custoMochila, statsArma, BALAS_POR_PENTE } from './data.js';
 import { S, salvar, capMochila, capEstoque, usoEstoque, temCusto, pagar, custoTxt, bonusAtivo, trabalhadores, bonusExpedicao, tickProducao, coletar, taxas, capPend, resetar } from './state.js';
 import * as ui from './ui.js';
-import { modeloPronto, criarAnimado, animar } from './models.js';
+import { modeloPronto, criarAnimado, animar, criarSobrevivente } from './models.js';
 
 const W = 28, H = 18;
 const EST = [
@@ -142,7 +142,7 @@ export class Base {
   montarSobreviventes() {
     this.svs.forEach(s => this.scene.remove(s.model.group)); this.svs = [];
     for (const sv of S.sobreviventes) {
-      const m = makeChibi({ skin: sv.skin, shirt: sv.shirt, hair: sv.hair });
+      const m = criarSobrevivente(sv);
       const e = EST.find(x => x.id === (sv.posto || 'alojamento'));
       const home = { x: e.x, z: e.z + (sv.posto ? 0 : 1.2) };
       const pos = new THREE.Vector3(home.x + rand(-1.2, 1.2), 0, home.z + rand(-1, 1));
@@ -187,7 +187,7 @@ export class Base {
       if (s.t <= 0) { s.alvo = { x: s.home.x + rand(-1.6, 1.6), z: s.home.z + rand(-1.3, 1.3) }; s.t = rand(2, 5); }
       let mov = 0;
       if (s.alvo) { const dx = s.alvo.x - s.pos.x, dz = s.alvo.z - s.pos.z, d = Math.hypot(dx, dz); if (d > 0.1) { moveCircle(s.pos, dx / d * 1.2 * dt, dz / d * 1.2 * dt, 0.25, (x, y) => this.grid.get(x, y) !== 0); s.model.group.rotation.y = Math.atan2(dx, dz); mov = 0.5; } else s.alvo = null; }
-      s.model.group.position.copy(s.pos); animChibi(s.model, dt, mov);
+      s.model.group.position.copy(s.pos); animar(s.model, dt, mov, { walkSpeed: 1 });
     }
     const e = this.estProxima();
     const t = e ? `Abrir<br>${e.ic}` : '—';

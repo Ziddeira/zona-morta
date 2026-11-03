@@ -16,17 +16,21 @@ export const ITENS = {
   carne:      { nome: 'Carne',        ic: '🍖', preco: 9 },
 };
 export const BALAS_POR_PENTE = 12;
+// lança-chamas: cada combustível dura este tanto de segundos atirando
+export const SEG_POR_COMBUSTIVEL = 6;
+export const TEMPO_RECARGA = 1.6;
 // Itens que podem ser levados na preparação
 export const CONSUMIVEIS = ['tabua', 'bandagem', 'remedio', 'municao', 'engrenagem', 'fio', 'ferramenta'];
 // Itens que o mercado vende (preço de compra = preço x 2,5)
 export const LOJA = ['tabua', 'municao', 'bandagem'];
 
 export const ARMAS = {
-  pistola:  { nome: 'Pistola',         slot: 'pistola',    dmg: 14, cad: 0.36, alc: 8.5, disp: 0.10, proj: 1, infinita: true },
-  escopeta: { nome: 'Escopeta',        slot: 'principal',  dmg: 10, cad: 0.85, alc: 6,   disp: 0.38, proj: 6 },
-  fuzil:    { nome: 'Fuzil',           slot: 'principal',  dmg: 20, cad: 0.15, alc: 11,  disp: 0.08, proj: 1 },
-  smg:      { nome: 'Submetralhadora', slot: 'secundaria', dmg: 9,  cad: 0.09, alc: 7.5, disp: 0.20, proj: 1 },
-  cacadora: { nome: 'Rifle de caça',   slot: 'secundaria', dmg: 48, cad: 1.0,  alc: 13,  disp: 0.03, proj: 1 },
+  pistola:  { nome: 'Pistola',         slot: 'pistola',    dmg: 14, cad: 0.36, alc: 8.5, disp: 0.10, proj: 1, infinita: true, pente: 8 },
+  escopeta: { nome: 'Escopeta',        slot: 'principal',  dmg: 10, cad: 0.85, alc: 6,   disp: 0.38, proj: 6, pente: 6 },
+  fuzil:    { nome: 'Fuzil',           slot: 'principal',  dmg: 20, cad: 0.15, alc: 11,  disp: 0.08, proj: 1, pente: 30 },
+  lancachamas: { nome: 'Lança-chamas', slot: 'principal',  dmg: 5,  cad: 0.08, alc: 3.8, disp: 0.45, proj: 0, chamas: true },
+  smg:      { nome: 'Submetralhadora', slot: 'secundaria', dmg: 9,  cad: 0.09, alc: 7.5, disp: 0.20, proj: 1, pente: 32 },
+  cacadora: { nome: 'Rifle de caça',   slot: 'secundaria', dmg: 48, cad: 1.0,  alc: 13,  disp: 0.03, proj: 1, pente: 5 },
   faca:     { nome: 'Faca',            slot: 'faca',       dmg: 30, cad: 0.45, alc: 1.35 },
 };
 // custo para fabricar na oficina (nível mínimo da oficina)
@@ -35,6 +39,7 @@ export const FABRICAR = {
   smg:      { nivel: 1, $: 100, itens: { sucata: 4, engrenagem: 2 } },
   cacadora: { nivel: 2, $: 160, itens: { sucata: 4, ferramenta: 2 } },
   fuzil:    { nivel: 2, $: 220, itens: { sucata: 6, engrenagem: 3, ferramenta: 2 } },
+  lancachamas: { nivel: 3, $: 400, itens: { sucata: 8, engrenagem: 4, combustivel: 3 } },
 };
 export function custoTier(t) { return { $: 60 * t, itens: { sucata: 3 * t, engrenagem: t } }; }
 export function statsArma(id, tier) {

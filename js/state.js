@@ -30,7 +30,7 @@ export function novoEstadoTeste() {
   const st = novoEstado();
   st.teste = true; st.dinheiro = 999999;
   st.estoque = {}; for (const k in ITENS) st.estoque[k] = 99;
-  st.armas = { pistola: 4, faca: 4, escopeta: 4, fuzil: 4, smg: 4, cacadora: 4 };
+  st.armas = { pistola: 4, faca: 4, escopeta: 4, fuzil: 4, smg: 4, cacadora: 4, lancachamas: 4 };
   st.mochila = 4;
   st.estruturas = { oficina: 3, enfermaria: 3, paiol: 3, estufa: 3, curral: 3 };
   for (let a = 0; a < 3; a++) for (let l = 0; l < 4; l++) st.extraidos[`${a}-${l}`] = true;
@@ -80,7 +80,8 @@ export function custoTxt(c) {
 
 // ---------- Sobreviventes ----------
 export function novoSobrevivente() {
-  const prof = pick(Object.keys(PROFISSOES));
+  // militar aparece com o dobro de chance (tem modelo 3D próprio)
+  const prof = pick([...Object.keys(PROFISSOES), 'militar']);
   const skins = ['#f1c9a5', '#e0b48c', '#c68e5f', '#9c6640', '#6e4528', '#4a2f1d'];
   return { id: S.nextId++, nome: pick(NOMES), prof, posto: null, skin: pick(skins), shirt: pick(['#a0522d', '#5f7f3f', '#7a4f8a', '#b08a3a', '#3f6f8f', '#8f3f3f', '#556b2f']), hair: pick(['#2a1a10', '#4a2f1d', '#111', '#8a6a3a', '#bbb']) };
 }

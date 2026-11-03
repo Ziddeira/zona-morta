@@ -1,6 +1,6 @@
-import { renderer, camera, initAudio, resetInput, toast, disposeScene, sfx } from './engine.js';
+import { renderer, camera, initAudio, resetInput, toast, disposeScene, sfx, getAudioCtx } from './engine.js';
 import { S, carregar, salvar, resetar, temSave, addEstoque, tickProducao, usarSaveTeste, novoEstadoTeste } from './state.js';
-import { carregarModelos } from './models.js';
+import { carregarModelos, iniciarSons } from './models.js';
 import { Galeria } from './galeria.js';
 import { ITENS, BALAS_POR_PENTE, PROFISSOES } from './data.js';
 import { Base } from './base.js';
@@ -59,7 +59,7 @@ const game = {
 const title = document.getElementById('title');
 document.getElementById('bPlay').textContent = temSave() ? 'Continuar' : 'Jogar';
 const comecar = (novo, teste) => {
-  initAudio();
+  initAudio(); iniciarSons(getAudioCtx());
   usarSaveTeste(!!teste);
   if (teste) { if (!carregar() || !S.teste) { novoEstadoTeste(); salvar(); } }
   else if (novo) resetar(); else carregar();

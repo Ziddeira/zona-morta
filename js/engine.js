@@ -235,6 +235,7 @@ export function disposeScene(scene) {
 
 // ---------- Som sintetizado (sem arquivos) ----------
 let actx = null;
+export const getAudioCtx = () => actx;
 export function initAudio() { try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (_) {} }
 let lastSfx = {};
 export function sfx(kind) {

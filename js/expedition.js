@@ -1,8 +1,8 @@
 import { THREE, makeChibi, animChibi, Grid, moveCircle, flowField, rand, randi, pick, pickWeighted, toast, sfx, mat, makeLabel, camFollow, toScreen, readInput, VIEW, resize } from './engine.js';
-import { AREAS, DIFICULDADES, ZUMBIS, ITENS, statsArma, BALAS_POR_PENTE } from './data.js';
+import { AREAS, DIFICULDADES, ZUMBIS, ITENS, statsArma, BALAS_POR_PENTE, SEG_POR_COMBUSTIVEL, TEMPO_RECARGA } from './data.js';
 import { S, capMochila, bonusExpedicao } from './state.js';
 import * as ui from './ui.js';
-import { modeloPronto, criarAnimado, animar, play } from './models.js';
+import { modeloPronto, criarAnimado, animar, play, segurarArma, ARMA_3D, ANIM_ARMA, criarObjeto, criarSobrevivente, somZumbi } from './models.js';
 
 const ACAO_NOMES = { saquear: 'Saquear', barricar: 'Barricar', reforcar: 'Reforçar', gerador: 'Reparar gerador', camera: 'Ativar câmera', resgatar: 'Resgatar' };
 
@@ -253,35 +253,38 @@ export class Expedition {
     const cfg = this.cfg;
     const p = this.player = { pos: new THREE.Vector3(this.spawn.x, 0, this.spawn.z), maxHp: 100 + this.bonus.vida, hp: 0, cd: 0, faca: 0, inv: 0, mortes: 0, face: 0 };
     p.hp = p.maxHp;
-    p.model = modeloPronto('protagonista') ? criarAnimado('protagonista', { arma: true }) : makeChibi({ shirt: '#2f5d8a', pants: '#2b2b33', skin: '#d9a77c', cap: '#3d5f22', gun: true });
+    p.model = modeloPronto('protagonista') ? criarAnimado('protagonista') : makeChibi({ shirt: '#2f5d8a', pants: '#2b2b33', skin: '#d9a77c', cap: '#3d5f22', gun: true });
     this.scene.add(p.model.group);
     this.armas = ['principal', 'secundaria', 'pistola'].filter(s => cfg.armas[s]).map(s => statsArma(cfg.armas[s], S.armas[cfg.armas[s]] || 1));
     if (!this.armas.length) this.armas.push(statsArma('pistola', 1));
     this.armaIdx = 0;
-    this.faca = statsArma('faca', S.armas.faca || 1);
-    this.mochila = {}; for (const k in cfg.itens) if (k !== 'municao' && cfg.itens[k] > 0) this.mochila[k] = cfg.itens[k];
     this.balas = (cfg.itens.municao || 0) * BALAS_POR_PENTE;
+    this.armas.forEach(a => { if (a.infinita) a.mag = a.pente; else if (a.pente) { a.mag = Math.min(a.pente, this.balas); this.balas -= a.mag; } else a.mag = 0; });
+    this.faca = statsArma('faca', S.armas.faca || 1);
+    p.recarga = 0; p.chamaT = 0;
+    if (p.model.animado) segurarArma(p.model, this.armas[0].id);
+    this.mochila = {}; for (const k in cfg.itens) if (k !== 'municao' && cfg.itens[k] > 0) this.mochila[k] = cfg.itens[k];
     this.levados = { ...cfg.itens };
     // companheiros
     for (const id of cfg.esquadrao) {
       const sv = S.sobreviventes.find(s => s.id === id); if (!sv) continue;
-      const m = makeChibi({ skin: sv.skin, shirt: sv.shirt, hair: sv.hair, gun: true });
+      const m = criarSobrevivente(sv, { armado: true });
       const c = { sv, pos: new THREE.Vector3(this.spawn.x + rand(-1, 1), 0, this.spawn.z + rand(-1, 1)), hp: 70, maxHp: 70, cd: 0, vivo: true, model: m, armado: true };
       moveCircle(c.pos, 0, 0, 0.3, (x, y) => this.pBlocked(x, y));
       this.scene.add(m.group); this.comps.push(c);
     }
     if (this.preso) {
       const sv = this.novoResgatado();
-      const m = makeChibi({ skin: sv.skin, shirt: sv.shirt, hair: sv.hair });
-      m.arms.forEach(a => a.rotation.x = -2.6);
+      const m = criarSobrevivente(sv, { preso: true });
       m.group.position.set(this.preso.x, 0, this.preso.z);
+      m.group.rotation.y = rand(0, 6.28);
       this.scene.add(m.group);
       const lb = makeLabel('🆘 Sobrevivente', { h: 0.5, bg: 'rgba(120,20,20,0.75)' }); lb.position.set(this.preso.x, 1.75, this.preso.z); this.scene.add(lb);
       this.preso.sv = sv; this.preso.model = m; this.preso.label = lb; this.preso.estado = 'preso';
     }
   }
   novoResgatado() {
-    const profs = ['enfermeiro', 'farmaceutico', 'militar', 'fabricante', 'agricultor', 'pecuarista'];
+    const profs = ['enfermeiro', 'farmaceutico', 'militar', 'militar', 'fabricante', 'agricultor', 'pecuarista'];
     const skins = ['#f1c9a5', '#e0b48c', '#c68e5f', '#9c6640', '#6e4528', '#4a2f1d'];
     const nomes = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Fábio', 'Gabi', 'Heitor', 'Iara', 'João', 'Kátia', 'Lucas', 'Marta', 'Nilo', 'Rita', 'Sérgio', 'Tânia', 'Vítor', 'Yara', 'Zeca'];
     return { id: null, nome: pick(nomes), prof: pick(profs), posto: null, skin: pick(skins), shirt: pick(['#a0522d', '#5f7f3f', '#7a4f8a', '#b08a3a', '#3f6f8f', '#8f3f3f']), hair: pick(['#2a1a10', '#4a2f1d', '#111', '#8a6a3a', '#bbb']) };
@@ -336,7 +339,8 @@ export class Expedition {
     e.balas.textContent = `🔫 ${this.balas}`;
     e.moch.textContent = `🎒 ${this.usoMochila()}/${capMochila()}`;
     const a = this.armas[this.armaIdx];
-    e.weapon.innerHTML = `${a.nome}${a.tier > 1 ? ' T' + a.tier : ''}<br><small style="opacity:.75">${a.infinita ? '∞' : this.balas + ' balas'} · trocar</small>`;
+    const mun = a.chamas ? `⛽ ${(this.mochila.combustivel || 0)} + ${Math.ceil(this.player.chamaT)}s` : `${a.mag}/${a.pente} · ${a.infinita ? '∞' : this.balas}`;
+    e.weapon.innerHTML = `${a.nome}${a.tier > 1 ? ' T' + a.tier : ''}<br><small style="opacity:.75">${this.player.recarga > 0 ? 'recarregando…' : mun} · trocar</small>`;
     e.bandN.textContent = this.mochila.bandagem || 0; e.remN.textContent = this.mochila.remedio || 0;
     let w = '';
     if (this.fase === 'calma') w = `Calmaria · horda ${this.horda + 1}/${this.area.hordas} em ${Math.ceil(this.timer)}s<small>Barricade portas e janelas, saqueie e conserte o gerador</small>`;
@@ -403,13 +407,21 @@ export class Expedition {
       toast('📹 Câmera ativa: zumbis próximos aparecem nas bordas da tela'); sfx('ok');
     } else if (a.tipo === 'resgatar') {
       const pr = a.alvo; pr.estado = 'seguindo'; this.scene.remove(pr.label);
-      const c = { sv: pr.sv, pos: new THREE.Vector3(pr.x, 0, pr.z), hp: 50, maxHp: 50, cd: 0, vivo: true, model: pr.model, armado: false, resgatado: true };
+      const armado = pr.sv.prof === 'militar';
+      if (armado && pr.model.animado) { segurarArma(pr.model, 'fuzil'); pr.model.estados = { ...pr.model.estados, idle: 'rifle_parado', walk: 'andando_arma', run: 'andando_arma' }; pr.model.lock = 0; }
+      const c = { sv: pr.sv, pos: new THREE.Vector3(pr.x, 0, pr.z), hp: armado ? 70 : 50, maxHp: armado ? 70 : 50, cd: 0, vivo: true, model: pr.model, armado, resgatado: true };
       this.comps.push(c); toast(`🆘 ${pr.sv.nome} (${pr.sv.prof}) vai com você até a evacuação`); sfx('ok');
     }
     this.atualizarHUD();
   }
   atualizarTabuas(e) { const n = Math.ceil(e.hp / 60); e.planks.forEach((p, k) => p.visible = k < n); }
-  trocarArma() { if (this.armas.length > 1) { this.armaIdx = (this.armaIdx + 1) % this.armas.length; this.atualizarHUD(); sfx('barr'); } }
+  trocarArma(idx) {
+    if (this.armas.length < 2 && idx === undefined) return;
+    this.armaIdx = idx ?? (this.armaIdx + 1) % this.armas.length;
+    this.player.recarga = 0;
+    if (this.player.model.animado) segurarArma(this.player.model, this.armas[this.armaIdx].id);
+    this.atualizarHUD(); sfx('barr');
+  }
   curar(tipo) {
     if (!(this.mochila[tipo] > 0)) { toast(`Sem ${ITENS[tipo].nome.toLowerCase()}`); return; }
     const p = this.player; if (p.hp >= p.maxHp) { toast('Vida cheia'); return; }
@@ -477,14 +489,14 @@ export class Expedition {
     const hp = Z.hp * this.area.zHp * this.diff.zHp;
     const z = { tipo, Z, pos: new THREE.Vector3(x + 0.5, 0, y + 0.5), hp, maxHp: hp, vel: Z.vel * rand(0.9, 1.1), dmg: Z.dmg * this.diff.zDmg, model: m, cd: rand(0, 1), r: 0.28 * Z.esc, hit: 0, morto: 0 };
     m.group.position.copy(z.pos); this.scene.add(m.group); this.zombies.push(z);
-    if (m.animado) { m.mixer.setTime(Math.random() * 3); if (Math.random() < 0.3) z.parado = play(m, 'gritando', { once: true }); }
+    if (m.animado) { m.mixer.setTime(Math.random() * 3); if (Math.random() < 0.3) { z.parado = play(m, 'gritando', { once: true }); const d = Math.hypot(z.pos.x - this.player.pos.x, z.pos.z - this.player.pos.z); if (d < 14) somZumbi('grito', 0.5 * (1 - d / 16), 1.6, 1.2); } }
     if (Math.random() < 0.15) sfx('grunhido');
   }
   iniciarHorda() {
     this.horda++; this.fase = 'horda';
     this.toSpawn = this.area.zBase + this.area.zInc * (this.horda - 1); this.spawnT = 0;
     if (this.bonus.pentePorHorda) { this.balas += this.bonus.pentePorHorda * BALAS_POR_PENTE; toast(`🏭 Fabricante entregou ${this.bonus.pentePorHorda} pente(s)`); }
-    toast(`🧟 Horda ${this.horda} chegando!`); sfx('grunhido');
+    toast(`🧟 Horda ${this.horda} chegando!`); if (!somZumbi('grito', 0.7, 2.6, 0)) sfx('grunhido');
   }
   fimHorda() {
     for (const c of this.caixas) { if (!c.itens) { c.itens = this.rolarLoot(); c.mk.visible = true; c.mesh.material = mat({ posto: '#b84a3a', delegacia: '#4b5d7a', hospital: '#d9d9d9', mercado: '#c8a050', escola: '#6a8a4a', fabrica: '#7a7a6a' }[this.loc.deco] || '#8a6a4a'); } }
@@ -498,6 +510,7 @@ export class Expedition {
     if (this.ended) return;
     this.t += dt;
     const inp = readInput(), p = this.player;
+    if (p.morrendo > 0) { inp.active = false; inp.mag = 0; }
     // movimento do jogador
     const spd = 3.6;
     if (inp.active) { moveCircle(p.pos, inp.mx * spd * dt, inp.mz * spd * dt, 0.3, (x, y) => this.pBlocked(x, y)); p.face = Math.atan2(inp.mx, inp.mz); }
@@ -536,12 +549,16 @@ export class Expedition {
     // visual do jogador
     p.model.group.position.copy(p.pos);
     p.model.group.rotation.y = p.face;
-    animar(p.model, dt, inp.active ? inp.mag : 0);
-    p.model.group.visible = !(p.inv > 0 && Math.floor(this.t * 10) % 2);
+    this.animJogador(dt, inp);
+    p.model.group.visible = p.morrendo > 0 || !(p.inv > 0 && Math.floor(this.t * 10) % 2);
+    if (p.morrendo > 0) { p.morrendo -= dt; if (p.morrendo <= 0) this.depoisDaMorte(); }
+    this.updDrops(dt);
+    this.updChamas(dt);
+    this.updSons(dt);
     this.lanterna.position.set(p.pos.x, 2.2, p.pos.z);
     camFollow(p.pos.x, p.pos.z, dt);
     for (const c of this.caixas) if (c.itens) { c.mk.position.y = 1.05 + Math.sin(this.t * 3 + c.x) * 0.08; c.mk.rotation.y += dt * 2; }
-    if (this.preso && this.preso.estado === 'preso') animChibi(this.preso.model, dt * 0.3, 0);
+    if (this.preso && this.preso.estado === 'preso') { if (this.preso.model.animado) animar(this.preso.model, dt, 0); else animChibi(this.preso.model, dt * 0.3, 0); }
     this.updAcaoBtn();
     this.updIndicadores();
     this.hudT = (this.hudT || 0) - dt; if (this.hudT <= 0) { this.atualizarHUD(); this.hudT = 0.2; }
@@ -564,29 +581,138 @@ export class Expedition {
     }
     return best;
   }
+  animJogador(dt, inp) {
+    const p = this.player, m = p.model;
+    if (!m.animado) { animChibi(m, dt, inp.active ? 1 : 0); return; }
+    const a = this.armas[this.armaIdx];
+    const A = ANIM_ARMA[(ARMA_3D[a.id] || {}).anim || 'pistola'];
+    let clip, speed = 1;
+    m.esconderArma = false;
+    if (this.acao) {
+      clip = { saquear: 'vasculhando_bau', barricar: 'vasculhando', reforcar: 'vasculhando', gerador: 'vasculhando', camera: 'pegando', resgatar: 'recrutando' }[this.acao.tipo];
+      m.esconderArma = true;
+    } else if (p.recarga > 0) { clip = 'recarregando'; speed = 3.3 / TEMPO_RECARGA; }
+    else if (inp.active) {
+      // andando de costas enquanto mira (só a pistola tem essa animação)
+      const frente = Math.sin(p.face) * inp.mx + Math.cos(p.face) * inp.mz;
+      const costas = p.mirando && frente < -0.3 * inp.mag && A.walkBack;
+      clip = inp.mag < 0.62 ? (costas ? A.walkBack : A.walk) : (costas ? A.runBack : A.run);
+      if (inp.mag < 0.62) speed = Math.max(0.6, inp.mag * 1.6);
+    } else clip = p.mirando ? A.tiro : A.idle;
+    animar(m, dt, 0, { clip, clipSpeed: speed });
+  }
   updCombate(dt) {
     const p = this.player; p.cd -= dt; p.faca -= dt;
-    p.model.aim = false;
-    if (this.acao) return;
+    p.model.aim = false; p.mirando = false;
+    if (this.acao || p.morrendo > 0) return;
     // faca quando o zumbi está colado
     let perto = null, pd = this.faca.alc;
     for (const z of this.zombies) { if (z.morto) continue; const d = Math.hypot(z.pos.x - p.pos.x, z.pos.z - p.pos.z); if (d < pd) { pd = d; perto = z; } }
     if (perto) {
-      p.face = Math.atan2(perto.pos.x - p.pos.x, perto.pos.z - p.pos.z); p.model.aim = true;
+      p.face = Math.atan2(perto.pos.x - p.pos.x, perto.pos.z - p.pos.z); p.model.aim = true; p.mirando = true;
       if (p.faca <= 0) { this.dano(perto, this.faca.dmg); p.faca = this.faca.cad; sfx('faca'); this.particula(perto.pos, '#cfe0ff'); }
       return;
     }
     let a = this.armas[this.armaIdx];
-    if (!a.infinita && this.balas <= 0) { const pi = this.armas.findIndex(w => w.infinita); if (pi >= 0 && pi !== this.armaIdx) { this.armaIdx = pi; a = this.armas[pi]; toast('Sem balas — trocou para a pistola'); this.atualizarHUD(); } }
+    const pistola = () => { const pi = this.armas.findIndex(w => w.infinita); if (pi >= 0 && pi !== this.armaIdx) { this.trocarArma(pi); return true; } return false; };
+    // recarga em andamento
+    if (p.recarga > 0) { p.recarga -= dt; if (p.recarga <= 0) this.concluirRecarga(a); return; }
+    if (a.chamas) {
+      if (p.chamaT <= 0 && !(this.mochila.combustivel > 0)) { if (pistola()) toast('Sem combustível — trocou para a pistola'); return; }
+    } else if (a.mag <= 0) {
+      if (a.infinita || this.balas > 0) { this.iniciarRecarga(); return; }
+      if (pistola()) toast('Sem balas — trocou para a pistola');
+      return;
+    }
     const alvo = this.alvoTiro(p.pos.x, p.pos.z, a.alc);
-    if (!alvo) return;
-    p.face = Math.atan2(alvo.pos.x - p.pos.x, alvo.pos.z - p.pos.z); p.model.aim = true;
-    if (p.cd > 0 || (!a.infinita && this.balas <= 0)) return;
+    if (!alvo) {
+      // sem zumbi por perto: completa o pente
+      if (!a.chamas && a.mag < a.pente && (a.infinita || this.balas > 0) && !this.zombies.some(z => !z.morto && Math.hypot(z.pos.x - p.pos.x, z.pos.z - p.pos.z) < 5)) this.iniciarRecarga();
+      return;
+    }
+    p.face = Math.atan2(alvo.pos.x - p.pos.x, alvo.pos.z - p.pos.z); p.model.aim = true; p.mirando = true;
+    if (p.cd > 0) return;
     p.cd = a.cad;
-    if (!a.infinita) this.balas--;
+    if (a.chamas) { this.lancarChamas(a); return; }
+    a.mag--;
     const disp = a.disp * (1 - this.bonus.disp);
     for (let k = 0; k < a.proj; k++) this.atirar(p.pos, p.face + rand(-disp, disp), a.dmg, a.alc);
     sfx(a.proj > 1 ? 'escopeta' : 'tiro');
+  }
+  iniciarRecarga() { this.player.recarga = TEMPO_RECARGA; sfx('barr'); this.atualizarHUD(); }
+  concluirRecarga(a) {
+    const falta = a.pente - a.mag;
+    if (a.infinita) a.mag = a.pente;
+    else { const n = Math.min(falta, this.balas); this.balas -= n; a.mag += n; }
+    this.player.recarga = 0; this.atualizarHUD();
+  }
+  // lança-chamas: dano em cone, gasta combustível da mochila
+  lancarChamas(a) {
+    const p = this.player;
+    if (p.chamaT <= 0) {
+      this.mochila.combustivel--; if (!this.mochila.combustivel) delete this.mochila.combustivel;
+      p.chamaT = SEG_POR_COMBUSTIVEL; this.atualizarHUD();
+    }
+    p.chamaT -= a.cad;
+    for (const z of this.zombies) {
+      if (z.morto) continue;
+      const dx = z.pos.x - p.pos.x, dz = z.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+      if (d > a.alc) continue;
+      let da = Math.atan2(dx, dz) - p.face; da = Math.atan2(Math.sin(da), Math.cos(da));
+      if (Math.abs(da) < a.disp && this.grid.los(p.pos.x, p.pos.z, z.pos.x, z.pos.z)) this.dano(z, a.dmg, true);
+    }
+    if (!this.chamaGeo) { this.chamaGeo = new THREE.SphereGeometry(0.16, 7, 5); this.chamas = []; }
+    for (let k = 0; k < 2; k++) {
+      const ang = p.face + rand(-a.disp * 0.7, a.disp * 0.7), v = rand(5, 7);
+      const m = new THREE.Mesh(this.chamaGeo, new THREE.MeshBasicMaterial({ color: pick(['#ffb030', '#ff7a1a', '#ffd84a']), transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+      m.position.set(p.pos.x + Math.sin(p.face) * 0.65, 0.72, p.pos.z + Math.cos(p.face) * 0.65);
+      this.scene.add(m); this.chamas.push({ m, vx: Math.sin(ang) * v, vz: Math.cos(ang) * v, t: 0, vida: a.alc / v });
+    }
+    if (Math.random() < 0.3) sfx('escopeta');
+  }
+  updChamas(dt) {
+    if (!this.chamas) return;
+    for (let i = this.chamas.length - 1; i >= 0; i--) {
+      const c = this.chamas[i]; c.t += dt;
+      c.m.position.x += c.vx * dt; c.m.position.z += c.vz * dt; c.m.position.y += dt * 0.6;
+      const f = c.t / c.vida; c.m.scale.setScalar(1 + f * 2.5); c.m.material.opacity = Math.max(0, 0.9 * (1 - f));
+      if (f >= 1) { this.scene.remove(c.m); c.m.material.dispose(); this.chamas.splice(i, 1); }
+    }
+  }
+  // munição que cai dos zumbis (modelos 3D de bala)
+  soltarMunicao(pos) {
+    if (!this.drops) this.drops = [];
+    if (this.drops.length >= 15) return;
+    const a = this.armas[this.armaIdx];
+    const tipo = (ARMA_3D[a.id] || {}).bala || 'bala_rifle';
+    let m = criarObjeto(tipo);
+    if (!m) { m = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.3), mat('#c9a227')); }
+    const g = new THREE.Group(); g.add(m); m.rotation.x = Math.PI / 2; m.position.z = 0;
+    g.position.set(pos.x, 0.3, pos.z);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 20).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0.6 }));
+    ring.position.y = -0.27; g.add(ring);
+    this.scene.add(g); this.drops.push({ g, t: 30 });
+  }
+  updDrops(dt) {
+    if (!this.drops) return;
+    const p = this.player.pos;
+    for (let i = this.drops.length - 1; i >= 0; i--) {
+      const d = this.drops[i]; d.t -= dt;
+      d.g.rotation.y += dt * 2.5; d.g.position.y = 0.3 + Math.sin(this.t * 4 + i) * 0.06;
+      const perto = Math.hypot(d.g.position.x - p.x, d.g.position.z - p.z) < 0.9;
+      if (perto) { this.balas += BALAS_POR_PENTE; toast(`📦 +${BALAS_POR_PENTE} balas`); sfx('ok'); this.atualizarHUD(); }
+      if (perto || d.t <= 0) { this.scene.remove(d.g); this.drops.splice(i, 1); }
+    }
+  }
+  updSons(dt) {
+    this.somT = (this.somT ?? 2) - dt;
+    if (this.somT > 0) return;
+    this.somT = rand(1.4, 3.2);
+    const p = this.player.pos;
+    const vivos = this.zombies.filter(z => !z.morto && Math.hypot(z.pos.x - p.x, z.pos.z - p.z) < 13);
+    if (!vivos.length) return;
+    const z = pick(vivos), d = Math.hypot(z.pos.x - p.x, z.pos.z - p.z);
+    if (!somZumbi('som', 0.75 * (1 - d / 15), rand(1.2, 2.2), 0.8)) sfx('grunhido');
   }
   atirar(from, ang, dmg, alc) {
     const m = new THREE.Mesh(this.projGeo, this.projMat);
@@ -613,10 +739,12 @@ export class Expedition {
       if (dead || pr.life <= 0) { this.scene.remove(pr.m); this.projs.splice(i, 1); }
     }
   }
-  dano(z, d) {
-    z.hp -= d; z.hit = 0.12; sfx('hit');
+  dano(z, d, chama) {
+    z.hp -= d; z.hit = 0.12; if (!chama) sfx('hit');
     if (z.hp <= 0 && !z.morto) {
       z.morto = 0.5; this.particula(z.pos, '#4f7a2f', true);
+      if (!somZumbi('morte', 0.55, rand(0.9, 1.4), 0.25)) sfx('grunhido');
+      if (Math.random() < 0.18) this.soltarMunicao(z.pos);
       if (z.model.animado) { z.model.lock = 0; play(z.model, z.rastejando ? 'morrendo_1' : z.model.estados.morte, { once: true, travar: true, speed: 1.3, fade: 0.1 }); z.morto = 3.2; }
     } else if (z.hp > 0 && z.model.animado && z.tipo === 'militar' && !z.rastejando && z.hp < z.maxHp * 0.35 && Math.random() < 0.5) {
       // militar ferido cai e continua rastejando
@@ -726,8 +854,20 @@ export class Expedition {
     }
   }
   morrer() {
-    const p = this.player; p.mortes++; sfx('morte');
-    if (p.mortes > this.diff.mortes) { this.terminar(false, this.diff.mortes === 0 ? 'Modo Hardcore: uma morte encerra a missão.' : 'Você morreu mais vezes do que o permitido.'); return; }
+    const p = this.player; if (p.morrendo > 0) return;
+    p.mortes++; sfx('morte');
+    this.acao = null; p.recarga = 0;
+    p.fim = p.mortes > this.diff.mortes;
+    if (p.model.animado) {
+      // animação de morte e só depois volta (ou encerra)
+      p.model.lock = 0; play(p.model, 'morrendo', { once: true, travar: true, fade: 0.1 });
+      p.morrendo = 2.4; p.inv = 99;
+    } else this.depoisDaMorte();
+  }
+  depoisDaMorte() {
+    const p = this.player; p.morrendo = 0;
+    if (p.model.animado) { p.model.lock = 0; p.model.travar = false; }
+    if (p.fim) { this.terminar(false, this.diff.mortes === 0 ? 'Modo Hardcore: uma morte encerra a missão.' : 'Você morreu mais vezes do que o permitido.'); return; }
     // penalidade
     let perdidos = 0;
     if (this.diff.perdaMorte > 0) {
@@ -745,7 +885,12 @@ export class Expedition {
     const p = this.player;
     this.comps.forEach((c, idx) => {
       if (!c.vivo) {
-        if (c.morteT > 0) { c.morteT -= dt; c.model.inner.rotation.x = -Math.min(1.5, (1.5 - c.morteT) * 2); if (c.morteT <= 0) this.scene.remove(c.model.group); }
+        if (c.morteT > 0) {
+          c.morteT -= dt;
+          if (c.model.animado) { if (!c.animMorte) { c.animMorte = 1; c.model.lock = 0; play(c.model, 'morrendo', { once: true, travar: true }); c.morteT = 4; } animar(c.model, dt, 0); }
+          else c.model.inner.rotation.x = -Math.min(1.5, (1.5 - c.morteT) * 2);
+          if (c.morteT <= 0) this.scene.remove(c.model.group);
+        }
         return;
       }
       const ang = p.face + Math.PI + (idx - (this.comps.length - 1) / 2) * 0.9;
@@ -764,7 +909,8 @@ export class Expedition {
         }
       }
       c.model.group.position.copy(c.pos); c.model.group.rotation.y = c.face || 0;
-      animChibi(c.model, dt, mov);
+      if (c.model.animado) animar(c.model, dt, mov, { clip: c.model.aim && mov < 0.15 && c.armado ? 'atirando' : null, walkSpeed: 1 });
+      else animChibi(c.model, dt, mov);
     });
   }
   updIndicadores() {
@@ -789,6 +935,7 @@ export class Expedition {
     const vivos = this.comps.filter(c => c.vivo);
     const mortos = this.comps.filter(c => !c.vivo && !c.resgatado).map(c => c.sv.id);
     const resgatados = ok ? vivos.filter(c => c.resgatado).map(c => c.sv) : [];
+    for (const a of this.armas) if (!a.infinita && a.mag > 0) { this.balas += a.mag; a.mag = 0; }
     const dinheiro = ok ? Math.round(this.area.$ * this.diff.$) : 0;
     this.onEnd({ ok, motivo, mochila: ok ? this.mochila : {}, balas: ok ? this.balas : 0, mortos, resgatados, dinheiro, levados: this.levados, local: this.loc, cfg: this.cfg });
   }

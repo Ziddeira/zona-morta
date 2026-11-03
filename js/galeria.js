@@ -1,6 +1,6 @@
 // Galeria (modo teste): mostra cada personagem 3D e toca cada animação
 import { THREE, VIEW, resize, camera, mat } from './engine.js';
-import { MODELOS, NOMES_ANIM, modeloPronto, criarAnimado, clipsDe, play } from './models.js';
+import { MODELOS, NOMES_ANIM, modeloPronto, criarAnimado, clipsDe, play, animar, segurarArma, armaDaAnim } from './models.js';
 
 export class Galeria {
   constructor(game) {
@@ -21,14 +21,14 @@ export class Galeria {
   mostrar(k) {
     if (this.m) this.scene.remove(this.m.group);
     this.k = k;
-    this.m = criarAnimado(k, { arma: k === 'protagonista' });
+    this.m = criarAnimado(k);
     this.m.lock = 1; // a galeria controla as animações
     this.scene.add(this.m.group);
     this.anim = clipsDe(k)[0];
     this.tocar(this.anim);
     this.render();
   }
-  tocar(n) { this.anim = n; this.m.lock = 0; play(this.m, n, { restart: true, fade: 0.15, speed: this.velo }); this.m.lock = 1; this.render(); }
+  tocar(n) { this.anim = n; if (this.k !== 'zumbi_militar') segurarArma(this.m, armaDaAnim(n)); this.m.lock = 0; play(this.m, n, { restart: true, fade: 0.15, speed: this.velo }); this.m.lock = 1; this.render(); }
   montarHUD() {
     document.getElementById('hudTL').innerHTML = `<div class="chip">🎬 Galeria de animações</div>`;
     document.getElementById('hudTR').innerHTML = `<button class="sb pe" id="gVoltar">← Voltar ao QG</button>`;
@@ -46,16 +46,16 @@ export class Galeria {
     });
   }
   render() {
-    const nomes = { protagonista: '🧍 Protagonista', zumbi_militar: '🧟 Zumbi militar' };
+    const nomes = { protagonista: '🧍 Protagonista', zumbi_militar: '🧟 Zumbi militar', militar_vivo: '🎖️ Militar (sobrevivente)' };
     this.br.innerHTML = `
       <div class="row pe" style="justify-content:center">${this.lista.map(k => `<button class="sb ${k === this.k ? '' : 'g'}" data-g="mod" data-v="${k}">${nomes[k] || k}</button>`).join('')}
         <button class="sb g" data-g="girar">${this.girar ? '⏸ Parar giro' : '🔄 Girar'}</button>
         ${[0.5, 1].map(v => `<button class="sb ${this.velo === v ? '' : 'g'}" data-g="velo" data-v="${v}">${v === 1 ? 'Normal' : 'Câmera lenta'}</button>`).join('')}</div>
-      <div class="row pe" style="justify-content:center">${clipsDe(this.k).map(n => `<button class="sb ${n === this.anim ? '' : 'g'}" data-g="anim" data-v="${n}">${NOMES_ANIM[n] || n}</button>`).join('')}</div>`;
+      <div class="pe" style="display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:4px;touch-action:pan-x">${clipsDe(this.k).map(n => `<button class="sb ${n === this.anim ? '' : 'g'}" style="flex:none" data-g="anim" data-v="${n}">${NOMES_ANIM[n] || n}</button>`).join('')}</div>`;
   }
   update(dt) {
     if (this.girar) this.m.group.rotation.y += dt * 0.6;
-    this.m.mixer.update(dt);
+    animar(this.m, dt, 0);
     // câmera mais baixa, de frente, para ver bem o personagem
     camera.position.set(7, 3.2, 7); camera.lookAt(0, 0.62, 0);
   }

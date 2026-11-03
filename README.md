@@ -25,7 +25,12 @@ Depois abra `http://localhost:8000`. Também dá para publicar direto na Vercel 
 - `js/ui.js` — painéis
 - `js/models.js` — carrega os personagens 3D (.glb) e controla as animações
 - `js/galeria.js` — galeria de animações (modo teste)
-- `assets/` — personagens 3D: `protagonista.glb` (parado, andando, correndo) e `zumbi_militar.glb` (andando, 3 ataques, gritando, 2 mortes, rastejando, mordendo e comendo no chão)
+- `assets/protagonista.glb` — protagonista com 26 animações (desarmado, pistola, fuzil, escopeta, recarregar, morrer, vasculhar, abrir/fechar baú, pegar, recrutar)
+- `assets/zumbi_militar.glb` — andando, 3 ataques, gritando, 2 mortes, rastejando, mordendo e comendo no chão
+- `assets/militar_vivo.glb` — sobrevivente militar (andar com arma, atirar, morrer, parado, triste, recarregar)
+- `assets/armas/` — pistola, escopeta, fuzil (M4A1) e lança-chamas
+- `assets/itens/` — balas (9 mm, fuzil, escopeta, sniper) que caem dos zumbis
+- `assets/sons/` — sons dos zumbis (grunhido, grito, morte)
 - `addons/` — carregador de GLB do Three.js
 
 ## Personagens 3D
