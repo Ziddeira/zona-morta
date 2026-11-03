@@ -73,6 +73,7 @@ export function readInput() {
   input.mx = (ax - ay) * s;
   input.mz = (-ax - ay) * s;
   input.active = m > 0.12;
+  input.mag = m;
   return input;
 }
 
@@ -226,6 +227,7 @@ export function toast(msg) {
 }
 export function disposeScene(scene) {
   scene.traverse(o => {
+    if (o.userData.manter) return;
     if (o.geometry && !Object.values(G).includes(o.geometry)) o.geometry.dispose();
     if (o.material && o.material.map) o.material.map.dispose();
   });

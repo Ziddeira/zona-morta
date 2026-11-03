@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Zona Morta — Protótipo</title>
-<script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
+<script type="importmap">{ "imports": { "three": "./three.module.min.js", "three/addons/": "./addons/" } }</script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;overflow:hidden;background:#0b0d0c;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#eee;touch-action:none}
@@ -99,6 +99,8 @@ select{background:#2a302c;color:#eee;border:1px solid #3d4a40;border-radius:8px;
   <p>Protótipo · extração, hordas e QG</p>
   <button class="btn" id="bPlay">Jogar</button>
   <button class="btn sec" id="bNew">Novo jogo</button>
+  <button class="btn sec" id="bTeste" style="background:#5a5a1e;border-bottom-color:#38380f">🧪 Modo teste</button>
+  <p id="carregando" style="font-size:12px"></p>
 </div>
 
 <div id="hud" class="hidden">

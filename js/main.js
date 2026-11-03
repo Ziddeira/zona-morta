@@ -1,5 +1,7 @@
 import { renderer, camera, initAudio, resetInput, toast, disposeScene, sfx } from './engine.js';
-import { S, carregar, salvar, resetar, temSave, addEstoque, tickProducao } from './state.js';
+import { S, carregar, salvar, resetar, temSave, addEstoque, tickProducao, usarSaveTeste, novoEstadoTeste } from './state.js';
+import { carregarModelos } from './models.js';
+import { Galeria } from './galeria.js';
 import { ITENS, BALAS_POR_PENTE, PROFISSOES } from './data.js';
 import { Base } from './base.js';
 import { Expedition } from './expedition.js';
@@ -9,6 +11,9 @@ const game = {
   modo: null,
   irBase() {
     this.trocar(() => new Base(this));
+  },
+  abrirGaleria() {
+    this.trocar(() => new Galeria(this));
   },
   iniciarExpedicao(cfg) {
     this.trocar(() => new Expedition(cfg, r => setTimeout(() => this.fimExpedicao(r), 600)));
@@ -53,20 +58,30 @@ const game = {
 // tela inicial
 const title = document.getElementById('title');
 document.getElementById('bPlay').textContent = temSave() ? 'Continuar' : 'Jogar';
-const comecar = novo => {
+const comecar = (novo, teste) => {
   initAudio();
-  if (novo) resetar(); else carregar();
+  usarSaveTeste(!!teste);
+  if (teste) { if (!carregar() || !S.teste) { novoEstadoTeste(); salvar(); } }
+  else if (novo) resetar(); else carregar();
   title.classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
   try { const d = document.documentElement; if (d.requestFullscreen && matchMedia('(pointer:coarse)').matches) d.requestFullscreen().then(() => screen.orientation?.lock?.('landscape').catch(() => {})).catch(() => {}); } catch (_) {}
   game.irBase();
-  if (S.expedicoes === 0) ui.openPanel({
+  if (S.teste) toast('🧪 Modo teste: toque no 🧪 no canto para as ferramentas');
+  else if (S.expedicoes === 0) ui.openPanel({
     title: '🧟 Bem-vindo ao QG',
     body: `<p>O mundo acabou. Este abrigo é o que restou.</p><p>1. Vá até a <b>🗺️ Mesa de Guerra</b> e escolha um local.</p><p>2. Lá dentro, use <b>tábuas</b> para barricar portas e janelas antes da horda, saqueie as caixas ✨ e conserte o gerador.</p><p>3. Sobreviva às hordas e chegue ao ponto <b>H</b> para ser evacuado com o loot.</p><p>4. De volta ao QG, venda, construa e evolua a base.</p><p class="muted">Ande tocando e arrastando na metade esquerda da tela. A mira é automática.</p>`,
     foot: `<button class="sb" data-a="fechar">Bora</button>`, on: { fechar: () => ui.closePanel() },
   });
 };
 document.getElementById('bPlay').onclick = () => comecar(false);
+document.getElementById('bTeste').onclick = () => comecar(false, true);
+// carrega os personagens 3D antes de liberar os botões
+const btns = ['bPlay', 'bNew', 'bTeste'].map(id => document.getElementById(id));
+btns.forEach(b => b.disabled = true);
+const carregando = document.getElementById('carregando');
+carregarModelos(f => { carregando.textContent = `Carregando personagens… ${Math.round(f * 100)}%`; })
+  .finally(() => { btns.forEach(b => b.disabled = false); carregando.textContent = ''; });
 document.getElementById('bNew').onclick = e => {
   const b = e.currentTarget;
   if (!temSave() || b.dataset.ok) comecar(true);

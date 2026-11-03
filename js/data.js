@@ -77,21 +77,21 @@ export const DIFICULDADES = {
 };
 
 export const AREAS = [
-  { nome: 'Área 1 · Subúrbio', hordas: 3, zBase: 7, zInc: 4, zHp: 1, tipos: ['normal'], tam: [22, 14], entradas: 5, $: 40, resgate: 0.6, caixas: 10,
+  { nome: 'Área 1 · Subúrbio', hordas: 3, zBase: 7, zInc: 4, zHp: 1, tipos: ['normal', 'normal', 'militar'], tam: [22, 14], entradas: 5, $: 40, resgate: 0.6, caixas: 10,
     locais: [
       { id: 'posto', nome: 'Posto de Gasolina', ic: '⛽', cores: { piso: '#4a4a44', parede: '#c9b48a', fora: '#2b3324' }, loot: { combustivel: 4, sucata: 3, ferramenta: 2, fio: 2, comida: 2, tabua: 3, municao: 1 }, deco: 'posto' },
       { id: 'delegacia', nome: 'Delegacia', ic: '🚓', cores: { piso: '#3e4552', parede: '#8898ad', fora: '#2a2f2a' }, loot: { municao: 5, ferramenta: 1, sucata: 2, bandagem: 2, tabua: 2, raro: 0.3 }, deco: 'delegacia' },
       { id: 'hospital', nome: 'Hospital', ic: '🏥', cores: { piso: '#9aa6a3', parede: '#e1e6e3', fora: '#28322a' }, loot: { remedio: 3, bandagem: 4, fio: 2, engrenagem: 1, tabua: 2, comida: 1 }, deco: 'hospital' },
       { id: 'mercado', nome: 'Supermercado', ic: '🛒', cores: { piso: '#a39878', parede: '#c45b4a', fora: '#2c3326' }, loot: { comida: 5, tabua: 3, bandagem: 1, sucata: 2, fio: 1, engrenagem: 1 }, deco: 'mercado' },
     ] },
-  { nome: 'Área 2 · Centro', hordas: 4, zBase: 10, zInc: 5, zHp: 1.5, tipos: ['normal', 'normal', 'corredor'], tam: [26, 16], entradas: 6, $: 90, resgate: 0.65, caixas: 13,
+  { nome: 'Área 2 · Centro', hordas: 4, zBase: 10, zInc: 5, zHp: 1.5, tipos: ['normal', 'militar', 'corredor'], tam: [26, 16], entradas: 6, $: 90, resgate: 0.65, caixas: 13,
     locais: [
       { id: 'escola', nome: 'Escola', ic: '🏫', cores: { piso: '#7d6a4f', parede: '#d8c27a', fora: '#29301f' }, loot: { tabua: 4, comida: 2, fio: 2, engrenagem: 2, bandagem: 2, sucata: 2 }, deco: 'escola' },
       { id: 'shopping', nome: 'Shopping', ic: '🛍️', cores: { piso: '#b9b2a6', parede: '#6c7f94', fora: '#252b28' }, loot: { raro: 1, comida: 3, fio: 2, ferramenta: 2, engrenagem: 2, sucata: 2 }, deco: 'mercado' },
       { id: 'fabrica', nome: 'Fábrica', ic: '🏭', cores: { piso: '#55524b', parede: '#8a6d55', fora: '#26291f' }, loot: { engrenagem: 4, sucata: 4, ferramenta: 3, fio: 3, combustivel: 1 }, deco: 'fabrica' },
       { id: 'metro', nome: 'Estação de Metrô', ic: '🚇', cores: { piso: '#5f6468', parede: '#3f6f7d', fora: '#1f2324' }, loot: { municao: 2, bandagem: 2, sucata: 3, fio: 3, raro: 0.5, comida: 2 }, deco: 'delegacia' },
     ] },
-  { nome: 'Área 3 · Zona Vermelha', hordas: 5, zBase: 13, zInc: 6, zHp: 2.2, tipos: ['normal', 'normal', 'corredor', 'corredor', 'brutamonte'], tam: [30, 18], entradas: 7, $: 180, resgate: 0.7, caixas: 16,
+  { nome: 'Área 3 · Zona Vermelha', hordas: 5, zBase: 13, zInc: 6, zHp: 2.2, tipos: ['normal', 'militar', 'militar', 'corredor', 'brutamonte'], tam: [30, 18], entradas: 7, $: 180, resgate: 0.7, caixas: 16,
     locais: [
       { id: 'basemilitar', nome: 'Base Militar', ic: '🪖', cores: { piso: '#4c5340', parede: '#6b7553', fora: '#22261b' }, loot: { municao: 6, ferramenta: 2, engrenagem: 2, raro: 0.6, bandagem: 2 }, deco: 'fabrica' },
       { id: 'laboratorio', nome: 'Laboratório', ic: '🧪', cores: { piso: '#cfd6d8', parede: '#5d8f8a', fora: '#1d2422' }, loot: { remedio: 5, raro: 1.2, fio: 3, engrenagem: 2, bandagem: 2 }, deco: 'hospital' },
@@ -102,6 +102,7 @@ export const AREAS = [
 export const ZUMBIS = {
   normal:     { hp: 40,  vel: 1.45, dmg: 10, dmgBarr: 8,  esc: 1,    cor: '#5e7d4f', roupa: ['#5b4a3a', '#3f4f63', '#6d3b3b', '#4a4a4a'] },
   corredor:   { hp: 26,  vel: 2.7,  dmg: 7,  dmgBarr: 5,  esc: 0.9,  cor: '#7f9a5a', roupa: ['#8a5a2b', '#6a6a2a'] },
+  militar:    { hp: 60,  vel: 1.35, dmg: 12, dmgBarr: 10, esc: 1,    cor: '#5e7d4f', roupa: ['#4f5a3a'], modelo: 'zumbi_militar' },
   brutamonte: { hp: 170, vel: 1.0,  dmg: 24, dmgBarr: 30, esc: 1.45, cor: '#4f6a45', roupa: ['#4b2e5a', '#2e3b2e'] },
 };
 // Pontos para liberar a próxima área (locais diferentes extraídos)

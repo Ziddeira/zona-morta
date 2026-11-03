@@ -2,6 +2,7 @@ import { THREE, makeChibi, animChibi, Grid, moveCircle, rand, pick, toast, sfx, 
 import { ITENS, ARMAS, FABRICAR, custoTier, ESTRUTURAS, CUSTO_ESTRUTURA, PROFISSOES, DIFICULDADES, AREAS, CONSUMIVEIS, LOJA, LIBERAR_AREA, MOCHILA_MAX, custoMochila, statsArma, BALAS_POR_PENTE } from './data.js';
 import { S, salvar, capMochila, capEstoque, usoEstoque, temCusto, pagar, custoTxt, bonusAtivo, trabalhadores, bonusExpedicao, tickProducao, coletar, taxas, capPend, resetar } from './state.js';
 import * as ui from './ui.js';
+import { modeloPronto, criarAnimado, animar } from './models.js';
 
 const W = 28, H = 18;
 const EST = [
@@ -30,7 +31,7 @@ export class Base {
     this.sel = { area: 0, loc: 0, diff: 'facil' };
     this.montarCena();
     this.player = { pos: new THREE.Vector3(14, 0, 11.5), face: Math.PI };
-    this.pm = makeChibi({ shirt: '#2f5d8a', pants: '#2b2b33', skin: '#d9a77c', cap: '#3d5f22' });
+    this.pm = modeloPronto('protagonista') ? criarAnimado('protagonista') : makeChibi({ shirt: '#2f5d8a', pants: '#2b2b33', skin: '#d9a77c', cap: '#3d5f22' });
     this.scene.add(this.pm.group);
     this.svs = [];
     tickProducao();
@@ -152,11 +153,12 @@ export class Base {
   montarHUD() {
     document.getElementById('hudTL').innerHTML = `<div class="row" style="gap:6px"><div class="chip money" id="bMoney"></div><div class="chip" id="bEst"></div><div class="chip" id="bSv"></div></div>`;
     document.getElementById('hudTC').innerHTML = `<div class="chip" id="bDica" style="font-size:12px"></div>`;
-    document.getElementById('hudTR').innerHTML = `<button class="cbtn pe" id="bMenu" style="width:46px;height:46px;font-size:18px">⚙️</button>`;
+    document.getElementById('hudTR').innerHTML = (S.teste ? `<button class="cbtn pe" id="bTesteQG" style="width:46px;height:46px;font-size:18px;border-color:#e9f45a">🧪</button>` : '') + `<button class="cbtn pe" id="bMenu" style="width:46px;height:46px;font-size:18px">⚙️</button>`;
     document.getElementById('hudBR').innerHTML = `<span></span><button class="cbtn big pe off" id="bAcao"><span id="bAcaoT">—</span></button>`;
     const tap = (el, fn) => el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fn(); });
     tap(document.getElementById('bAcao'), () => this.interagir());
     tap(document.getElementById('bMenu'), () => this.menu());
+    if (S.teste) tap(document.getElementById("bTesteQG"), () => this.painelTeste());
     this.keyH = e => { if (ui.isOpen()) return; if (e.code === 'KeyE' || e.code === 'Space') this.interagir(); };
     window.addEventListener('keydown', this.keyH);
     this.hud();
@@ -177,7 +179,7 @@ export class Base {
   update(dt) {
     const inp = readInput(), p = this.player;
     if (inp.active) { moveCircle(p.pos, inp.mx * 4 * dt, inp.mz * 4 * dt, 0.3, (x, y) => this.grid.get(x, y) !== 0); p.face = Math.atan2(inp.mx, inp.mz); }
-    this.pm.group.position.copy(p.pos); this.pm.group.rotation.y = p.face; animChibi(this.pm, dt, inp.active ? 1 : 0);
+    this.pm.group.position.copy(p.pos); this.pm.group.rotation.y = p.face; animar(this.pm, dt, inp.active ? inp.mag : 0);
     camFollow(p.pos.x, p.pos.z, dt);
     animChibi(this.comerciante, dt * 0.3, 0);
     for (const s of this.svs) {
@@ -210,6 +212,30 @@ export class Base {
     else if (e.id === 'estoque') this.painelEstoque();
     else this.painelEstrutura(e.id);
   }
+  painelTeste() {
+    ui.openPanel({
+      title: '🧪 Modo teste',
+      body: `<p class="muted">Save separado do jogo normal. Tudo liberado: todas as áreas e locais, todas as armas no nível máximo, estruturas no máximo, 99 de cada item e um sobrevivente de cada profissão.</p>
+        <div class="grid">
+          <div class="card" data-a="galeria"><h3>🎬 Ver animações</h3><div class="s">Protagonista e zumbi militar, todas as animações</div></div>
+          <div class="card" data-a="dinheiro"><h3>💰 +$100.000</h3><div class="s">Dinheiro infinito na prática</div></div>
+          <div class="card" data-a="itens"><h3>📦 Repor itens</h3><div class="s">Volta tudo para 99</div></div>
+          <div class="card" data-a="sv"><h3>🆘 +1 sobrevivente</h3><div class="s">Profissão aleatória</div></div>
+          <div class="card" data-a="mil"><h3>${S.soMilitar ? '🟢' : '⚪'} Só zumbi militar</h3><div class="s">Nas expedições, todos os zumbis serão o militar</div></div>
+        </div>
+        <p class="muted">Dentro da expedição, o botão 🧪 tem: invencível, matar todos, pular horda, liberar evacuação e mais.</p>`,
+      foot: `<button class="sb r" data-a="sair">Sair do modo teste</button><button class="sb" data-a="fechar">Fechar</button>`,
+      on: {
+        fechar: () => ui.closePanel(),
+        galeria: () => { ui.closePanel(); this.game.abrirGaleria(); },
+        dinheiro: () => { S.dinheiro += 100000; toast('+$100.000'); this.depois(); },
+        itens: () => { for (const k in ITENS) S.estoque[k] = 99; toast('Estoque reposto'); this.depois(); },
+        sv: async () => { const { novoSobrevivente } = await import('./state.js'); S.sobreviventes.push(novoSobrevivente()); toast('Novo sobrevivente no Alojamento'); this.depois(); },
+        mil: () => { S.soMilitar = !S.soMilitar; this.depois(); ui.closePanel(); this.painelTeste(); },
+        sair: () => { salvar(); location.reload(); },
+      },
+    });
+  }
   menu() {
     ui.openPanel({
       title: '⚙️ Menu',
@@ -219,7 +245,7 @@ export class Base {
     });
   }
   areaLiberada(a) {
-    if (a === 0) return true;
+    if (a === 0 || S.teste) return true;
     const n = AREAS[a - 1].locais.filter((_, l) => S.extraidos[`${a - 1}-${l}`]).length;
     return n >= LIBERAR_AREA;
   }

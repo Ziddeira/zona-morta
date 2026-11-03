@@ -2,6 +2,7 @@ import { THREE, makeChibi, animChibi, Grid, moveCircle, flowField, rand, randi, 
 import { AREAS, DIFICULDADES, ZUMBIS, ITENS, statsArma, BALAS_POR_PENTE } from './data.js';
 import { S, capMochila, bonusExpedicao } from './state.js';
 import * as ui from './ui.js';
+import { modeloPronto, criarAnimado, animar, play } from './models.js';
 
 const ACAO_NOMES = { saquear: 'Saquear', barricar: 'Barricar', reforcar: 'Reforçar', gerador: 'Reparar gerador', camera: 'Ativar câmera', resgatar: 'Resgatar' };
 
@@ -252,7 +253,7 @@ export class Expedition {
     const cfg = this.cfg;
     const p = this.player = { pos: new THREE.Vector3(this.spawn.x, 0, this.spawn.z), maxHp: 100 + this.bonus.vida, hp: 0, cd: 0, faca: 0, inv: 0, mortes: 0, face: 0 };
     p.hp = p.maxHp;
-    p.model = makeChibi({ shirt: '#2f5d8a', pants: '#2b2b33', skin: '#d9a77c', cap: '#3d5f22', gun: true });
+    p.model = modeloPronto('protagonista') ? criarAnimado('protagonista', { arma: true }) : makeChibi({ shirt: '#2f5d8a', pants: '#2b2b33', skin: '#d9a77c', cap: '#3d5f22', gun: true });
     this.scene.add(p.model.group);
     this.armas = ['principal', 'secundaria', 'pistola'].filter(s => cfg.armas[s]).map(s => statsArma(cfg.armas[s], S.armas[cfg.armas[s]] || 1));
     if (!this.armas.length) this.armas.push(statsArma('pistola', 1));
@@ -296,7 +297,7 @@ export class Expedition {
       <div class="row" style="gap:5px"><div class="chip" id="vidasC"></div><div class="chip" id="balasC"></div></div>
       <div class="chip pe" id="mochC" style="width:max-content">🎒 0/0</div>`;
     document.getElementById('hudTC').innerHTML = `<div class="chip" id="wave"></div><div class="bar hidden" id="xbar"><i id="xbarI" style="width:0"></i></div><button class="sb pe hidden" id="skipB" style="margin-top:5px">⏩ Chamar horda agora</button>`;
-    document.getElementById('hudTR').innerHTML = `<button class="cbtn pe" id="pauseB" style="width:46px;height:46px;font-size:18px">⏸</button>`;
+    document.getElementById('hudTR').innerHTML = (S.teste ? `<button class="cbtn pe" id="testeB" style="width:46px;height:46px;font-size:18px;border-color:#e9f45a">🧪</button>` : '') + `<button class="cbtn pe" id="pauseB" style="width:46px;height:46px;font-size:18px">⏸</button>`;
     document.getElementById('hudBR').innerHTML = `
       <button class="cbtn pe" id="bandB">🩹<small>Bandagem</small><span class="cnt" id="bandN">0</span></button>
       <button class="cbtn pe" id="remB">💊<small>Remédio</small><span class="cnt" id="remN">0</span></button>
@@ -314,6 +315,7 @@ export class Expedition {
     tap($('remB'), () => this.curar('remedio'));
     tap(this.el.skip, () => { if (this.fase === 'calma') this.timer = 0; });
     tap($('pauseB'), () => this.pausar());
+    if (S.teste) tap($('testeB'), () => this.painelTeste());
     tap(this.el.moch, () => this.verMochila());
     this.keyH = e => {
       if (ui.isOpen()) return;
@@ -424,6 +426,32 @@ export class Expedition {
       on: { sair: () => { ui.closePanel(); this.terminar(false, 'Você abandonou a expedição.'); }, fechar: () => ui.closePanel() },
     });
   }
+  painelTeste() {
+    const matarTodos = () => { this.zombies.forEach(z => { if (!z.morto) this.dano(z, 1e9); }); this.toSpawn = 0; };
+    const render = () => ui.setBody(`<p class="muted">Ferramentas do modo teste. Nada daqui existe no jogo normal.</p>
+      <div class="grid">
+        <div class="card" data-a="deus"><h3>${this.deus ? '🟢' : '⚪'} Invencível</h3><div class="s">Zumbis não tiram vida</div></div>
+        <div class="card" data-a="mil"><h3>${S.soMilitar ? '🟢' : '⚪'} Só zumbi militar</h3><div class="s">Todos os zumbis que nascerem serão o militar</div></div>
+        <div class="card" data-a="spawn"><h3>🧟 +5 militares</h3><div class="s">Nascem agora do lado de fora</div></div>
+        <div class="card" data-a="matar"><h3>💥 Matar todos</h3><div class="s">Mata os zumbis vivos e encerra a horda</div></div>
+        <div class="card" data-a="horda"><h3>⏩ Próxima horda</h3><div class="s">Começa a próxima horda agora</div></div>
+        <div class="card" data-a="extr"><h3>🚁 Liberar evacuação</h3><div class="s">Pula direto para o ponto H</div></div>
+        <div class="card" data-a="moch"><h3>🎒 Encher mochila</h3><div class="s">+5 de cada item e +120 balas</div></div>
+        <div class="card" data-a="vida"><h3>❤️ Curar</h3><div class="s">Vida cheia</div></div>
+      </div>`);
+    ui.openPanel({ title: '🧪 Modo teste', body: '', foot: `<button class="sb" data-a="fechar">Fechar</button>`, on: {
+      fechar: () => ui.closePanel(),
+      deus: () => { this.deus = !this.deus; render(); },
+      mil: () => { S.soMilitar = !S.soMilitar; render(); },
+      spawn: () => { for (let k = 0; k < 5; k++) this.spawnZumbi('militar'); if (this.fase === 'calma') this.timer = 999; ui.closePanel(); toast('5 militares chegando (calmaria pausada)'); },
+      matar: () => { matarTodos(); ui.closePanel(); },
+      horda: () => { matarTodos(); if (this.horda < this.area.hordas) { this.fase = 'calma'; this.timer = 0; } ui.closePanel(); },
+      extr: () => { matarTodos(); this.horda = this.area.hordas; this.fase = 'horda'; ui.closePanel(); },
+      moch: () => { for (const k of ['tabua', 'bandagem', 'remedio', 'engrenagem', 'fio', 'ferramenta']) this.mochila[k] = (this.mochila[k] || 0) + 5; this.balas += 120; this.atualizarHUD(); toast('Mochila cheia de coisa'); },
+      vida: () => { this.player.hp = this.player.maxHp; this.atualizarHUD(); },
+    } });
+    render();
+  }
   verMochila() {
     const lin = Object.keys(this.mochila).map(k => `<div class="it">${ITENS[k].ic}<b>${ITENS[k].nome}</b>${this.mochila[k]}</div>`).join('') || '<p class="muted">Vazia</p>';
     ui.openPanel({ title: `🎒 Mochila ${this.usoMochila()}/${capMochila()}`, body: `<div class="grid">${lin}<div class="it">📦<b>Balas</b>${this.balas}</div></div>`, foot: `<button class="sb" data-a="fechar">Fechar</button>`, on: { fechar: () => ui.closePanel() } });
@@ -442,13 +470,14 @@ export class Expedition {
   }
   spawnZumbi(tipoForcado) {
     if (!this.spawnZ.length) return;
-    const tipo = tipoForcado || pick(this.area.tipos);
+    const tipo = tipoForcado || (S.teste && S.soMilitar ? 'militar' : pick(this.area.tipos));
     const Z = ZUMBIS[tipo];
     const [x, y] = pick(this.spawnZ);
-    const m = makeChibi({ zombie: true, skin: Z.cor, shirt: pick(Z.roupa), pants: '#2a2a22', scale: Z.esc, hair: Math.random() < 0.5 ? '#2a2a1a' : null });
+    const m = Z.modelo && modeloPronto(Z.modelo) ? criarAnimado(Z.modelo, { scale: Z.esc }) : makeChibi({ zombie: true, skin: Z.cor, shirt: pick(Z.roupa), pants: '#2a2a22', scale: Z.esc, hair: Math.random() < 0.5 ? '#2a2a1a' : null });
     const hp = Z.hp * this.area.zHp * this.diff.zHp;
     const z = { tipo, Z, pos: new THREE.Vector3(x + 0.5, 0, y + 0.5), hp, maxHp: hp, vel: Z.vel * rand(0.9, 1.1), dmg: Z.dmg * this.diff.zDmg, model: m, cd: rand(0, 1), r: 0.28 * Z.esc, hit: 0, morto: 0 };
     m.group.position.copy(z.pos); this.scene.add(m.group); this.zombies.push(z);
+    if (m.animado) { m.mixer.setTime(Math.random() * 3); if (Math.random() < 0.3) z.parado = play(m, 'gritando', { once: true }); }
     if (Math.random() < 0.15) sfx('grunhido');
   }
   iniciarHorda() {
@@ -507,7 +536,7 @@ export class Expedition {
     // visual do jogador
     p.model.group.position.copy(p.pos);
     p.model.group.rotation.y = p.face;
-    animChibi(p.model, dt, inp.active ? 1 : 0);
+    animar(p.model, dt, inp.active ? inp.mag : 0);
     p.model.group.visible = !(p.inv > 0 && Math.floor(this.t * 10) % 2);
     this.lanterna.position.set(p.pos.x, 2.2, p.pos.z);
     camFollow(p.pos.x, p.pos.z, dt);
@@ -586,7 +615,15 @@ export class Expedition {
   }
   dano(z, d) {
     z.hp -= d; z.hit = 0.12; sfx('hit');
-    if (z.hp <= 0 && !z.morto) { z.morto = 0.5; this.particula(z.pos, '#4f7a2f', true); }
+    if (z.hp <= 0 && !z.morto) {
+      z.morto = 0.5; this.particula(z.pos, '#4f7a2f', true);
+      if (z.model.animado) { z.model.lock = 0; play(z.model, z.rastejando ? 'morrendo_1' : z.model.estados.morte, { once: true, travar: true, speed: 1.3, fade: 0.1 }); z.morto = 3.2; }
+    } else if (z.hp > 0 && z.model.animado && z.tipo === 'militar' && !z.rastejando && z.hp < z.maxHp * 0.35 && Math.random() < 0.5) {
+      // militar ferido cai e continua rastejando
+      z.rastejando = true; z.vel *= 0.5; z.parado = 0; z.model.lock = 0; z.model.atkClip = null;
+      Object.assign(z.model.estados, { idle: 'rastejando', walk: 'rastejando', run: 'rastejando', atk: 'mordendo_chao' });
+      play(z.model, 'rastejando', { fade: 0.3 });
+    }
   }
   particula(pos, cor, chao) {
     if (chao) {
@@ -608,7 +645,9 @@ export class Expedition {
     for (let i = this.zombies.length - 1; i >= 0; i--) {
       const z = this.zombies[i];
       if (z.morto) {
-        z.morto -= dt; z.model.inner.rotation.x = -(1 - z.morto / 0.5) * 1.5; z.model.group.position.y = -(1 - z.morto / 0.5) * 0.2;
+        z.morto -= dt;
+        if (z.model.animado) { z.model.mixer.update(dt); if (z.morto < 0.6) z.model.group.position.y = -(0.6 - z.morto) * 0.6; }
+        else { z.model.inner.rotation.x = -(1 - z.morto / 0.5) * 1.5; z.model.group.position.y = -(1 - z.morto / 0.5) * 0.2; }
         if (z.morto <= 0) { this.scene.remove(z.model.group); this.zombies.splice(i, 1); }
         continue;
       }
@@ -617,7 +656,8 @@ export class Expedition {
       let alvo = p, ad = Math.hypot(p.pos.x - z.pos.x, p.pos.z - z.pos.z);
       for (const c of this.comps) { if (!c.vivo) continue; const d = Math.hypot(c.pos.x - z.pos.x, c.pos.z - z.pos.z); if (d < ad && d < 1.2) { ad = d; alvo = c; } }
       let vx = 0, vz = 0, movendo = true;
-      if (ad < 0.75 + z.r) {
+      if (z.parado > 0) { z.parado -= dt; movendo = false; }
+      else if (ad < 0.75 + z.r) {
         movendo = false;
         z.face = Math.atan2(alvo.pos.x - z.pos.x, alvo.pos.z - z.pos.z);
         if (z.cd <= 0) { z.cd = 1.0; this.ferir(alvo, z.dmg); }
@@ -660,13 +700,18 @@ export class Expedition {
       moveCircle(z.pos, vx * dt, vz * dt, z.r, (x, y) => this.zBlocked(x, y));
       z.model.group.position.copy(z.pos);
       if (z.face !== undefined) z.model.group.rotation.y = z.face;
-      animChibi(z.model, dt, movendo ? z.vel / 2 : 0.2);
-      z.model.inner.scale.setScalar(z.Z.esc * (z.hit > 0 ? 1.12 : 1));
+      if (z.model.animado) {
+        animar(z.model, dt, movendo ? 0.5 : 0, { atacando: !movendo && !(z.parado > 0), walkSpeed: z.vel / (z.rastejando ? 0.6 : 1.1), idleSpeed: 0.4 });
+        z.model.inner.scale.setScalar(z.hit > 0 ? 1.08 : 1);
+      } else {
+        animChibi(z.model, dt, movendo ? z.vel / 2 : 0.2);
+        z.model.inner.scale.setScalar(z.Z.esc * (z.hit > 0 ? 1.12 : 1));
+      }
     }
   }
   ferir(alvo, dmg) {
     if (alvo === this.player) {
-      const p = this.player; if (p.inv > 0) return;
+      const p = this.player; if (p.inv > 0 || this.deus) return;
       p.hp -= dmg; sfx('dano');
       const h = document.getElementById('hurt'); h.style.opacity = 0.7; clearTimeout(this._hurtT); this._hurtT = setTimeout(() => h.style.opacity = 0, 180);
       if (this.acao) { this.acao = null; }
