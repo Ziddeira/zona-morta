@@ -30,7 +30,14 @@ export async function carregarModelos(onProg) {
   const total = () => { const v = Object.values(prog); return v.reduce((a, b) => a + b, 0) / Object.keys(MODELOS).length; };
   await Promise.all(Object.entries(MODELOS).map(async ([k, d]) => {
     try {
-      const g = await L.loadAsync(d.url, e => { if (e.total) { prog[k] = e.loaded / e.total; onProg && onProg(total()); } });
+      let g;
+      try { g = await L.loadAsync(d.url, e => { if (e.total) { prog[k] = e.loaded / e.total; onProg && onProg(total()); } }); }
+      catch (err) {
+        // alternativa: o mesmo .glb embutido num arquivo .js (usado na versão publicada no Claude)
+        const mod = await import(new URL(d.url + '.js', document.baseURI).href);
+        const bin = Uint8Array.from(atob(mod.default), c => c.charCodeAt(0));
+        g = await L.parseAsync(bin.buffer, './assets/');
+      }
       prog[k] = 1; onProg && onProg(total());
       // material leve (Lambert) para rodar bem no celular
       g.scene.traverse(o => {
