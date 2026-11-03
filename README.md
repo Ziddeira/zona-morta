@@ -28,7 +28,6 @@ Depois abra `http://localhost:8000`. Também dá para publicar direto na Vercel 
 - `assets/protagonista.glb` — protagonista com 26 animações (desarmado, pistola, fuzil, escopeta, recarregar, morrer, vasculhar, abrir/fechar baú, pegar, recrutar)
 - `assets/zumbi_militar.glb` — andando, 3 ataques, gritando, 2 mortes, rastejando, mordendo e comendo no chão
 - `assets/militar_vivo.glb` — sobrevivente militar (andar com arma, atirar, morrer, parado, triste, recarregar)
-- `assets/armas/` — pistola, escopeta, fuzil (M4A1) e lança-chamas
 - `assets/itens/` — balas (9 mm, fuzil, escopeta, sniper) que caem dos zumbis
 - `assets/sons/` — sons dos zumbis (grunhido, grito, morte)
 - `addons/` — carregador de GLB do Three.js
@@ -36,6 +35,15 @@ Depois abra `http://localhost:8000`. Também dá para publicar direto na Vercel 
 ## Personagens 3D
 
 Os modelos vieram do Tripo, foram rigados e animados no Mixamo e convertidos de FBX para GLB. Na conversão a malha foi simplificada para rodar no celular (zumbi ~8 mil triângulos, protagonista ~13 mil), a textura foi reduzida para 1024 px e o deslocamento das animações foi removido (o jogo move o personagem).
+
+## Armas nas mãos (Blender)
+
+As armas ficam presas ao osso da mão direita dentro dos próprios arquivos `protagonista.glb` e `militar_vivo.glb`. O jogo só liga e desliga a arma certa. No Blender (cena `armas_nas_maos.blend`, na pasta do projeto no computador):
+
+- cada animação de arma foi girada para a arma apontar para a frente do personagem;
+- a arma foi afastada do rosto e do peito para não atravessar o corpo;
+- os braços foram refeitos com IK: mão direita na empunhadura/gatilho e mão esquerda no guarda-mão (fuzil) ou no pump (escopeta), e a "base" das animações foi gravada de novo;
+- a escopeta e o lança-chamas ganharam animações próprias de andar e correr.
 
 ## Modo teste
 

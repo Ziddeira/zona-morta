@@ -21,10 +21,6 @@ export const MODELOS = {
 // ---------- Objetos (armas e munição) ----------
 // tam = comprimento no jogo; pega = onde a mão segura (0 = traseira, 1 = cano)
 export const OBJETOS = {
-  arma_pistola:     { url: './assets/armas/pistola.glb', rx: -Math.PI / 2, tam: 0.32, pega: 0.25 },
-  arma_escopeta:    { url: './assets/armas/escopeta.glb', rx: -Math.PI / 2, tam: 0.95, pega: 0.38 },
-  arma_fuzil:       { url: './assets/armas/fuzil.glb', rx: -Math.PI / 2, tam: 0.9, pega: 0.42 },
-  arma_lancachamas: { url: './assets/armas/lancachamas.glb', tam: 0.9, pega: 0.4 },
   bala_9mm:         { url: './assets/itens/bala_9mm.glb', tam: 0.32 },
   bala_rifle:       { url: './assets/itens/bala_rifle.glb', tam: 0.36 },
   bala_escopeta:    { url: './assets/itens/bala_escopeta.glb', tam: 0.4 },
@@ -37,13 +33,14 @@ export const ARMA_3D = {
   fuzil:       { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle' },
   smg:         { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', esc: 0.82 },
   cacadora:    { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_sniper', esc: 1.08 },
-  lancachamas: { obj: 'arma_lancachamas', anim: 'rifle', bala: null },
+  lancachamas: { obj: 'arma_lancachamas', anim: 'lanca', bala: null },
   faca:        { obj: null, anim: 'pistola' },
 };
 export const ANIM_ARMA = {
   pistola:  { idle: 'pistola_parado', walk: 'pistola_andando', run: 'pistola_correndo', walkBack: 'pistola_andando_tras', runBack: 'pistola_correndo_tras', tiro: 'atirando_pistola' },
   rifle:    { idle: 'rifle_parado', walk: 'rifle_andando', run: 'rifle_correndo', tiro: 'atirando_rifle', recarga: 'recarregando' },
-  escopeta: { idle: 'escopeta_parado', walk: 'rifle_andando', run: 'rifle_correndo', tiro: 'atirando_escopeta', recarga: 'recarregando' },
+  escopeta: { idle: 'escopeta_parado', walk: 'escopeta_andando', run: 'escopeta_correndo', tiro: 'atirando_escopeta', recarga: 'recarregando' },
+  lanca:    { idle: 'lanca_parado', walk: 'lanca_andando', run: 'lanca_correndo', tiro: 'lanca_atirando', recarga: 'recarregando' },
 };
 // nomes amigáveis para a galeria
 export const NOMES_ANIM = {
@@ -55,12 +52,14 @@ export const NOMES_ANIM = {
   rifle_parado: 'Fuzil parado', rifle_andando: 'Fuzil andando', rifle_correndo: 'Fuzil correndo', atirando_rifle: 'Atirando (fuzil)', recarregando: 'Recarregando',
   escopeta_parado: 'Escopeta parado', atirando_escopeta: 'Atirando (escopeta)', andando_arma: 'Andando com arma', morrendo: 'Morrendo',
   vasculhando: 'Vasculhando itens', vasculhando_bau: 'Vasculhando baú', abrindo_bau: 'Abrindo baú', fechando_bau: 'Fechando baú', pegando: 'Pegando algo',
-  recrutando: 'Recrutando sobrevivente', andando_frente_arma: 'Andando (arma à frente)', atirando: 'Atirando', triste: 'Parado (triste)',
+  recrutando: 'Recrutando sobrevivente', escopeta_andando: 'Escopeta andando', escopeta_correndo: 'Escopeta correndo',
+  lanca_parado: 'Lança-chamas parado', lanca_andando: 'Lança-chamas andando', lanca_correndo: 'Lança-chamas correndo', lanca_atirando: 'Lança-chamas atirando', andando_frente_arma: 'Andando (arma à frente)', atirando: 'Atirando', triste: 'Parado (triste)',
 };
 // arma que aparece na mão em cada animação da galeria
 export function armaDaAnim(n) {
   if (/pistola/.test(n)) return 'pistola';
   if (/escopeta/.test(n)) return 'escopeta';
+  if (/^lanca/.test(n)) return 'lancachamas';
   if (/rifle|recarreg|andando_arma|andando_frente_arma|^atirando$/.test(n)) return 'fuzil';
   return null;
 }
@@ -101,7 +100,8 @@ export async function carregarModelos(onProg) {
         // mede o personagem já na pose de "parado" (a pose de repouso do arquivo pode estar acima do chão)
         const idle = g.animations.find(c => c.name === d.estados.idle) || g.animations[0];
         if (idle) { const mx = new THREE.AnimationMixer(g.scene); mx.clipAction(idle).play(); mx.update(0); g.scene.updateMatrixWorld(true); }
-        const box = new THREE.Box3().setFromObject(g.scene, true);
+        const box = new THREE.Box3();
+        g.scene.traverse(o => { if (o.isSkinnedMesh) box.expandByObject(o, true); });
         cache[k] = { scene: g.scene, clips: g.animations, escala: d.altura / box.getSize(new THREE.Vector3()).y, minY: box.min.y, def: d };
       } else {
         // centraliza: comprimento no eixo Z (cano para +Z) e a mão na origem
@@ -142,30 +142,22 @@ export function criarAnimado(k, opts = {}) {
   const m = { group, inner, obj, mixer, actions, estados: { ...c.def.estados, ...(opts.estados || {}) }, cur: null, curName: '', lock: 0, t: 0, aim: false, animado: true, escala: s };
   m.mao = obj.getObjectByName('mixamorigRightHand');
   mixer.addEventListener('finished', e => { if (e.action === m.cur && !m.travar) m.lock = 0; });
-  if (opts.arma) segurarArma(m, opts.arma);
+  segurarArma(m, opts.arma || null);
   play(m, m.estados.idle);
   return m;
 }
 // coloca a arma 3D na mão (a posição segue a mão; a direção segue o personagem)
 export function segurarArma(m, armaId) {
-  if (m.arma) { m.inner.remove(m.arma); m.arma = null; }
   m.armaId = armaId;
   const info = ARMA_3D[armaId];
-  if (!info || !info.obj || !cacheObj[info.obj]) return;
-  const a = criarObjeto(info.obj);
-  if (info.esc) a.scale.setScalar(info.esc);
-  m.inner.add(a); m.arma = a;
+  const alvo = info && info.obj;
+  if (!m.armas) { m.armas = []; m.obj.traverse(o => { if (/^arma_/.test(o.name) && o.parent && !/^arma_/.test(o.parent.name)) m.armas.push(o); }); }
+  m.arma = null;
+  for (const a of m.armas) { const on = !!alvo && a.name.startsWith(alvo); a.visible = on; if (on) m.arma = a; }
 }
 const _v = new THREE.Vector3();
-function posicionarArma(m) {
-  if (!m.arma || !m.mao) return;
-  m.arma.visible = !m.esconderArma;
-  if (!m.arma.visible) return;
-  m.obj.updateMatrixWorld(true);
-  m.mao.getWorldPosition(_v); m.inner.worldToLocal(_v);
-  m.arma.position.copy(_v);
-  m.arma.rotation.set(0, 0, 0);
-}
+// a arma já vem presa ao osso da mão (Blender); aqui só esconde durante ações sem arma
+function posicionarArma(m) { if (m.arma) m.arma.visible = !m.esconderArma; }
 // toca uma animação; once = toca uma vez e para no último quadro
 export function play(m, name, o = {}) {
   if (Array.isArray(name)) name = name[Math.floor(Math.random() * name.length)];
