@@ -4,20 +4,36 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 // ---------- Personagens animados ----------
+function EST_ZUMBI() { return { idle: 'parado', walk: 'andando', run: 'correndo', atk: ['ataque_1', 'ataque_2', 'mordendo_em_pe'], morte: ['morrendo_1', 'morrendo_2'], barricada: 'quebrando_barricada' }; }
+function EST_SV() { return { idle: 'parado', walk: 'andando', run: 'correndo', morte: 'morrendo', falar: ['falando', 'falando_2'] }; }
 export const MODELOS = {
   protagonista: {
     url: './assets/protagonista.glb', altura: 1.35,
     estados: { idle: 'parado', walk: 'andando', run: 'correndo' },
-    alt: 'protagonista_arma',
+    alt: { fuzil: 'protagonista_arma', escopeta: 'protagonista_escopeta' },
   },
   // protagonista já modelado com o fuzil nas mãos (usado com fuzil/SMG/caçadora)
   protagonista_arma: {
-    url: './assets/protagonista_arma.glb', altura: 1.35, giro: Math.PI, // o arquivo olha para -Z
+    url: './assets/protagonista_arma.glb', altura: 1.35, giro: Math.PI + 0.40, // o arquivo olha para -Z; +0.40 alinha o cano com a mira
     estados: { idle: 'parado', walk: 'andando', run: 'correndo', tiro: 'atirando' },
   },
   zumbi_militar: {
     url: './assets/zumbi_militar.glb', altura: 1.4,
     estados: { idle: 'andando', walk: 'andando', run: 'andando', atk: ['ataque_1', 'ataque_2', 'mordendo_em_pe'], morte: ['morrendo_1', 'morrendo_2'] },
+  },
+  // zumbis novos (riggados no Blender com as animações da pasta zumbis/movimentação)
+  zumbi_fazendeiro: { url: './assets/zumbi_fazendeiro.glb', altura: 1.4, estados: EST_ZUMBI() },
+  zumbi_enfermeira: { url: './assets/zumbi_enfermeira.glb', altura: 1.35, estados: EST_ZUMBI() },
+  zumbi_medico:     { url: './assets/zumbi_medico.glb', altura: 1.4, estados: EST_ZUMBI() },
+  zumbi_policial:   { url: './assets/zumbi_policial.glb', altura: 1.4, estados: EST_ZUMBI() },
+  // sobreviventes novos (animações da pasta sobreviventes/movimentação + andar/correr/morrer do protagonista)
+  enfermeira: { url: './assets/sv_enfermeira.glb', altura: 1.3, estados: EST_SV() },
+  botanico:   { url: './assets/sv_botanico.glb', altura: 1.32, estados: EST_SV() },
+  mercador:   { url: './assets/sv_mercador.glb', altura: 1.32, estados: EST_SV() },
+  // protagonista já modelado com a escopeta nas mãos
+  protagonista_escopeta: {
+    url: './assets/protagonista_escopeta.glb', altura: 1.35, giro: -0.24, // alinha o cano com a mira
+    estados: { idle: 'parado', walk: 'andando', run: 'correndo', tiro: 'atirando' },
   },
   militar_vivo: {
     url: './assets/militar_vivo.glb', altura: 1.38,
@@ -35,10 +51,10 @@ export const OBJETOS = {
 // arma do jogo -> modelo 3D, conjunto de animações e munição que cai dos zumbis
 export const ARMA_3D = {
   pistola:     { obj: 'arma_pistola', anim: 'pistola', bala: 'bala_9mm' },
-  escopeta:    { obj: 'arma_escopeta', anim: 'escopeta', bala: 'bala_escopeta' },
-  fuzil:       { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', alt: true },
-  smg:         { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', esc: 0.82, alt: true },
-  cacadora:    { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_sniper', esc: 1.08, alt: true },
+  escopeta:    { obj: 'arma_escopeta', anim: 'escopeta', bala: 'bala_escopeta', alt: 'escopeta' },
+  fuzil:       { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', alt: 'fuzil' },
+  smg:         { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', esc: 0.82, alt: 'fuzil' },
+  cacadora:    { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_sniper', esc: 1.08, alt: 'fuzil' },
   lancachamas: { obj: 'arma_lancachamas', anim: 'lanca', bala: null },
   faca:        { obj: null, anim: 'pistola' },
 };
@@ -46,16 +62,18 @@ export const ANIM_ARMA = {
   pistola:  { idle: 'pistola_parado', walk: 'pistola_andando', run: 'pistola_correndo', walkBack: 'pistola_andando_tras', runBack: 'pistola_correndo_tras', tiro: 'atirando_pistola' },
   rifle:    { idle: 'rifle_parado', walk: 'rifle_andando', run: 'rifle_correndo', tiro: 'atirando_rifle', recarga: 'recarregando',
               walkTiro: 'rifle_andando_atirando', runTiro: 'rifle_correndo_atirando', walkBack: 'rifle_andando_tras', runBack: 'rifle_andando_tras', walkBackTiro: 'rifle_andando_tras_atirando' },
-  escopeta: { idle: 'escopeta_parado', walk: 'escopeta_andando', run: 'escopeta_correndo', tiro: 'atirando_escopeta', recarga: 'recarregando' },
+  escopeta: { idle: 'escopeta_parado', walk: 'escopeta_andando', run: 'escopeta_correndo', tiro: 'atirando_escopeta', recarga: 'recarregando',
+              walkTiro: 'escopeta_andando_atirando', runTiro: 'escopeta_correndo_atirando', walkBack: 'escopeta_andando_tras', runBack: 'escopeta_andando_tras', walkBackTiro: 'escopeta_andando_tras_atirando' },
   lanca:    { idle: 'lanca_parado', walk: 'lanca_andando', run: 'lanca_correndo', tiro: 'lanca_atirando', recarga: 'recarregando' },
 };
 // animações do protagonista com o fuzil na mão (modelo alternativo) e o que usar quando ele não carregou
-const ALT_CLIP = {
-  rifle_parado: 'parado', rifle_andando: 'andando', rifle_correndo: 'correndo', atirando_rifle: 'atirando',
-  rifle_andando_atirando: 'andando_atirando', rifle_correndo_atirando: 'correndo_atirando',
-  rifle_andando_tras: 'andando_tras', rifle_andando_tras_atirando: 'andando_tras_atirando',
-};
-const SEM_ALT = { rifle_andando_atirando: 'rifle_andando', rifle_correndo_atirando: 'rifle_correndo', rifle_andando_tras: 'rifle_andando', rifle_andando_tras_atirando: 'rifle_andando' };
+const ALT_CLIP = {};
+const SEM_ALT = {};
+for (const [pre, tiro] of [['rifle', 'atirando_rifle'], ['escopeta', 'atirando_escopeta']]) {
+  Object.assign(ALT_CLIP, { [pre + '_parado']: 'parado', [pre + '_andando']: 'andando', [pre + '_correndo']: 'correndo', [tiro]: 'atirando',
+    [pre + '_andando_atirando']: 'andando_atirando', [pre + '_correndo_atirando']: 'correndo_atirando', [pre + '_andando_tras']: 'andando_tras', [pre + '_andando_tras_atirando']: 'andando_tras_atirando' });
+  Object.assign(SEM_ALT, { [pre + '_andando_atirando']: pre + '_andando', [pre + '_correndo_atirando']: pre + '_correndo', [pre + '_andando_tras']: pre + '_andando', [pre + '_andando_tras_atirando']: pre + '_andando' });
+}
 // nomes amigáveis para a galeria
 export const NOMES_ANIM = {
   parado: 'Parado', parado2: 'Parado (olhando)', andando: 'Andando', correndo: 'Correndo',
@@ -68,7 +86,7 @@ export const NOMES_ANIM = {
   vasculhando: 'Vasculhando itens', vasculhando_bau: 'Vasculhando baú', abrindo_bau: 'Abrindo baú', fechando_bau: 'Fechando baú', pegando: 'Pegando algo',
   recrutando: 'Recrutando sobrevivente', escopeta_andando: 'Escopeta andando', escopeta_correndo: 'Escopeta correndo',
   lanca_parado: 'Lança-chamas parado', lanca_andando: 'Lança-chamas andando', lanca_correndo: 'Lança-chamas correndo', lanca_atirando: 'Lança-chamas atirando', andando_frente_arma: 'Andando (arma à frente)', atirando: 'Atirando', triste: 'Parado (triste)',
-  andando_atirando: 'Andando e atirando', andando_tras: 'Andando de costas', andando_tras_atirando: 'De costas atirando', correndo_atirando: 'Correndo e atirando',
+  andando_atirando: 'Andando e atirando', quebrando_barricada: 'Quebrando barricada', falando: 'Falando', falando_2: 'Falando 2', parado2: 'Parado 2', andando_tras: 'Andando de costas', andando_tras_atirando: 'De costas atirando', correndo_atirando: 'Correndo e atirando',
 };
 // arma que aparece na mão em cada animação da galeria
 export function armaDaAnim(n) {
@@ -159,7 +177,10 @@ export function criarAnimado(k, opts = {}) {
   m.mao = obj.getObjectByName('mixamorigRightHand');
   mixer.addEventListener('finished', e => { if (e.action === m.cur && !m.travar) m.lock = 0; });
   // modelo alternativo (protagonista com o fuzil): fica escondido dentro do mesmo grupo
-  if (c.def.alt && cache[c.def.alt]) { m.alt = criarAnimado(c.def.alt, { semSombra: true, scale: opts.scale }); m.alt.group.visible = false; inner.add(m.alt.group); }
+  if (c.def.alt) {
+    m.alts = {};
+    for (const [tipo, k] of Object.entries(c.def.alt)) if (cache[k]) { const a = criarAnimado(k, { semSombra: true, scale: opts.scale }); a.group.visible = false; inner.add(a.group); m.alts[tipo] = a; }
+  }
   segurarArma(m, opts.arma || null);
   play(m, m.estados.idle);
   return m;
@@ -168,8 +189,10 @@ export function criarAnimado(k, opts = {}) {
 export function segurarArma(m, armaId) {
   m.armaId = armaId;
   const info = ARMA_3D[armaId];
-  m.altOn = !!(m.alt && info && info.alt);
-  if (!m.altOn && m.usandoAlt) mostrarAlt(m, false);
+  const novo = (m.alts && info && info.alt && m.alts[info.alt]) || null;
+  if (m.usandoAlt && m.alt !== novo) mostrarAlt(m, false);
+  if (novo) m.alt = novo;
+  m.altOn = !!novo;
   const alvo = info && info.obj;
   if (!m.armas) { m.armas = []; m.obj.traverse(o => { if (/^arma_/.test(o.name) && o.parent && !/^arma_/.test(o.parent.name)) m.armas.push(o); }); }
   m.arma = null;
@@ -178,7 +201,7 @@ export function segurarArma(m, armaId) {
 const _v = new THREE.Vector3();
 // a arma já vem presa ao osso da mão (Blender); aqui só esconde durante ações sem arma
 function posicionarArma(m) { if (m.arma) m.arma.visible = !m.esconderArma; }
-function mostrarAlt(m, on) { m.usandoAlt = on; m.alt.group.visible = on; m.obj.visible = !on; }
+function mostrarAlt(m, on) { m.usandoAlt = on; m.alt.group.visible = on; m.obj.visible = !on; if (!on) { m.alt.mixer.stopAllAction(); m.alt.cur = null; } }
 // toca uma animação; once = toca uma vez e para no último quadro
 export function play(m, name, o = {}) {
   if (Array.isArray(name)) name = name[Math.floor(Math.random() * name.length)];
@@ -251,11 +274,14 @@ export function somZumbi(k, vol = 0.6, dur = 1.6, minGap = 0.3) {
 // ---------- Sobreviventes ----------
 import { makeChibi } from './engine.js';
 export const ESTADOS_MILITAR_ARMADO = { idle: 'rifle_parado', walk: 'andando_arma', run: 'andando_arma', tiro: 'atirando', morte: 'morrendo' };
-// militar usa o modelo 3D do militar vivo; as outras profissões ainda usam o boneco simples
+// modelo 3D de cada profissão (o fabricante/mecânico ainda não tem modelo 3D)
+export const MODELO_PROF = { militar: 'militar_vivo', enfermeiro: 'enfermeira', farmaceutico: 'enfermeira', agricultor: 'botanico', pecuarista: 'botanico' };
 export function criarSobrevivente(sv, opts = {}) {
   if (sv.prof === 'militar' && modeloPronto('militar_vivo')) {
     return criarAnimado('militar_vivo', { arma: opts.armado ? 'fuzil' : null, estados: opts.armado ? ESTADOS_MILITAR_ARMADO : (opts.preso ? { idle: 'triste' } : {}) });
   }
+  const k = MODELO_PROF[sv.prof];
+  if (k && modeloPronto(k) && !opts.armado) return criarAnimado(k, { estados: opts.preso ? { idle: 'triste' } : {} });
   const m = makeChibi({ skin: sv.skin, shirt: sv.shirt, hair: sv.hair, gun: !!opts.armado });
   if (opts.preso) m.arms.forEach(a => a.rotation.x = -2.6);
   return m;

@@ -105,10 +105,10 @@ export const AREAS = [
     ] },
 ];
 export const ZUMBIS = {
-  normal:     { hp: 40,  vel: 1.45, dmg: 10, dmgBarr: 8,  esc: 1,    cor: '#5e7d4f', roupa: ['#5b4a3a', '#3f4f63', '#6d3b3b', '#4a4a4a'] },
-  corredor:   { hp: 26,  vel: 2.7,  dmg: 7,  dmgBarr: 5,  esc: 0.9,  cor: '#7f9a5a', roupa: ['#8a5a2b', '#6a6a2a'] },
+  normal:     { hp: 40,  vel: 1.45, dmg: 10, dmgBarr: 8,  esc: 1,    cor: '#5e7d4f', roupa: ['#5b4a3a', '#3f4f63', '#6d3b3b', '#4a4a4a'], modelo: ['zumbi_fazendeiro', 'zumbi_enfermeira', 'zumbi_medico', 'zumbi_policial'] },
+  corredor:   { hp: 26,  vel: 2.7,  dmg: 7,  dmgBarr: 5,  esc: 0.9,  cor: '#7f9a5a', roupa: ['#8a5a2b', '#6a6a2a'], modelo: ['zumbi_enfermeira', 'zumbi_medico', 'zumbi_fazendeiro'], corre: true },
   militar:    { hp: 60,  vel: 1.35, dmg: 12, dmgBarr: 10, esc: 1,    cor: '#5e7d4f', roupa: ['#4f5a3a'], modelo: 'zumbi_militar' },
-  brutamonte: { hp: 170, vel: 1.0,  dmg: 24, dmgBarr: 30, esc: 1.45, cor: '#4f6a45', roupa: ['#4b2e5a', '#2e3b2e'] },
+  brutamonte: { hp: 170, vel: 1.0,  dmg: 24, dmgBarr: 30, esc: 1.45, cor: '#4f6a45', roupa: ['#4b2e5a', '#2e3b2e'], modelo: ['zumbi_policial', 'zumbi_fazendeiro'] },
 };
 // Pontos para liberar a próxima área (locais diferentes extraídos)
 export const LIBERAR_AREA = 2;

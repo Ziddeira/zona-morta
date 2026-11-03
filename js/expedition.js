@@ -485,7 +485,8 @@ export class Expedition {
     const tipo = tipoForcado || (S.teste && S.soMilitar ? 'militar' : pick(this.area.tipos));
     const Z = ZUMBIS[tipo];
     const [x, y] = pick(this.spawnZ);
-    const m = Z.modelo && modeloPronto(Z.modelo) ? criarAnimado(Z.modelo, { scale: Z.esc }) : makeChibi({ zombie: true, skin: Z.cor, shirt: pick(Z.roupa), pants: '#2a2a22', scale: Z.esc, hair: Math.random() < 0.5 ? '#2a2a1a' : null });
+    const mods = [].concat(Z.modelo || []).filter(modeloPronto);
+    const m = mods.length ? criarAnimado(pick(mods), { scale: Z.esc }) : makeChibi({ zombie: true, skin: Z.cor, shirt: pick(Z.roupa), pants: '#2a2a22', scale: Z.esc, hair: Math.random() < 0.5 ? '#2a2a1a' : null });
     const hp = Z.hp * this.area.zHp * this.diff.zHp;
     const z = { tipo, Z, pos: new THREE.Vector3(x + 0.5, 0, y + 0.5), hp, maxHp: hp, vel: Z.vel * rand(0.9, 1.1), dmg: Z.dmg * this.diff.zDmg, model: m, cd: rand(0, 1), r: 0.28 * Z.esc, hit: 0, morto: 0 };
     m.group.position.copy(z.pos); this.scene.add(m.group); this.zombies.push(z);
@@ -809,8 +810,9 @@ export class Expedition {
             if (g.get(bx, by) === 3) { const e = this.entryAt.get(g.i(bx, by)); if (e.hp > 0) entrada = e; }
           } else { tx = p.pos.x; tz = p.pos.z; }
         }
+        z.naBarricada = false;
         if (entrada && Math.hypot(tx - z.pos.x, tz - z.pos.z) < 1.0 + z.r) {
-          movendo = false; z.face = Math.atan2(tx - z.pos.x, tz - z.pos.z);
+          movendo = false; z.naBarricada = true; z.face = Math.atan2(tx - z.pos.x, tz - z.pos.z);
           if (z.cd <= 0) {
             z.cd = 1.0; entrada.hp -= z.Z.dmgBarr * (this.cfg.diff === 'dificil' ? 1.3 : 1); sfx('barr');
             if (entrada.hp <= 0) { entrada.hp = 0; this.flowDirty = true; toast('🪵 Uma barricada caiu!'); }
@@ -831,7 +833,9 @@ export class Expedition {
       z.model.group.position.copy(z.pos);
       if (z.face !== undefined) z.model.group.rotation.y = z.face;
       if (z.model.animado) {
-        animar(z.model, dt, movendo ? 0.5 : 0, { atacando: !movendo && !(z.parado > 0), walkSpeed: z.vel / (z.rastejando ? 0.6 : 1.1), idleSpeed: 0.4 });
+        const e = z.model.estados;
+        animar(z.model, dt, movendo ? 0.5 : 0, { atacando: !movendo && !(z.parado > 0), walkSpeed: z.vel / (z.rastejando ? 0.6 : 1.1), idleSpeed: 0.4,
+          runAt: z.Z.corre ? 0.3 : 0.62, clip: (!movendo && z.naBarricada && e.barricada && !(z.parado > 0)) ? e.barricada : null, clipSpeed: 1.2 });
         z.model.inner.scale.setScalar(z.hit > 0 ? 1.08 : 1);
       } else {
         animChibi(z.model, dt, movendo ? z.vel / 2 : 0.2);

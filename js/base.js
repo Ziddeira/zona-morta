@@ -64,7 +64,7 @@ export class Base {
     // mercado: balcão + comerciante
     const balcao = new THREE.Mesh(new THREE.BoxGeometry(4, 0.8, 0.8), mat('#7a5a3a')); balcao.position.set(14, 0.4, 2.5); sc.add(balcao);
     const caixa = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.4), mat('#333')); caixa.position.set(13.2, 0.95, 2.5); sc.add(caixa);
-    const com = makeChibi({ shirt: '#8a6a2a', skin: '#c68e5f', hair: '#222' }); com.group.position.set(14.6, 0, 1.6); sc.add(com.group); this.comerciante = com;
+    const com = modeloPronto('mercador') ? criarAnimado('mercador') : makeChibi({ shirt: '#8a6a2a', skin: '#c68e5f', hair: '#222' }); com.group.position.set(14.6, 0, 1.6); sc.add(com.group); this.comerciante = com;
     // alojamento: beliches
     for (let k = 0; k < 3; k++) { const b = new THREE.Group(); b.position.set(7.5 + k * 1.2, 0, 7.3);
       const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.25, 1.8), mat('#3d4f6b')); c1.position.y = 0.4; b.add(c1);
@@ -181,7 +181,12 @@ export class Base {
     if (inp.active) { moveCircle(p.pos, inp.mx * 4 * dt, inp.mz * 4 * dt, 0.3, (x, y) => this.grid.get(x, y) !== 0); p.face = Math.atan2(inp.mx, inp.mz); }
     this.pm.group.position.copy(p.pos); this.pm.group.rotation.y = p.face; animar(this.pm, dt, inp.active ? inp.mag : 0);
     camFollow(p.pos.x, p.pos.z, dt);
-    animChibi(this.comerciante, dt * 0.3, 0);
+    if (this.comerciante.animado) {
+      // o comerciante conversa quando o jogador chega perto do balcão
+      const pp = this.pm.group.position, perto = Math.hypot(pp.x - 14, pp.z - 3) < 3.2;
+      animar(this.comerciante, dt, 0, perto ? { clip: 'falando' } : {});
+      this.comerciante.group.rotation.y = perto ? Math.atan2(pp.x - 14.6, pp.z - 1.6) : 0;
+    } else animChibi(this.comerciante, dt * 0.3, 0);
     for (const s of this.svs) {
       s.t -= dt;
       if (s.t <= 0) { s.alvo = { x: s.home.x + rand(-1.6, 1.6), z: s.home.z + rand(-1.3, 1.3) }; s.t = rand(2, 5); }
