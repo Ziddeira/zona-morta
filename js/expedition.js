@@ -596,7 +596,9 @@ export class Expedition {
       // andando de costas enquanto mira (só a pistola tem essa animação)
       const frente = Math.sin(p.face) * inp.mx + Math.cos(p.face) * inp.mz;
       const costas = p.mirando && frente < -0.3 * inp.mag && A.walkBack;
-      clip = inp.mag < 0.62 ? (costas ? A.walkBack : A.walk) : (costas ? A.runBack : A.run);
+      const tiro = p.mirando;
+      clip = inp.mag < 0.62 ? (costas ? (tiro && A.walkBackTiro) || A.walkBack : (tiro && A.walkTiro) || A.walk)
+                            : (costas ? (tiro && A.walkBackTiro) || A.runBack : (tiro && A.runTiro) || A.run);
       if (inp.mag < 0.62) speed = Math.max(0.6, inp.mag * 1.6);
     } else clip = p.mirando ? A.tiro : A.idle;
     animar(m, dt, 0, { clip, clipSpeed: speed });

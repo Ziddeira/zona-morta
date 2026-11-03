@@ -46,7 +46,7 @@ export class Galeria {
     });
   }
   render() {
-    const nomes = { protagonista: '🧍 Protagonista', zumbi_militar: '🧟 Zumbi militar', militar_vivo: '🎖️ Militar (sobrevivente)' };
+    const nomes = { protagonista: '🧍 Protagonista', protagonista_arma: '🔫 Protagonista com fuzil', zumbi_militar: '🧟 Zumbi militar', militar_vivo: '🎖️ Militar (sobrevivente)' };
     this.br.innerHTML = `
       <div class="row pe" style="justify-content:center">${this.lista.map(k => `<button class="sb ${k === this.k ? '' : 'g'}" data-g="mod" data-v="${k}">${nomes[k] || k}</button>`).join('')}
         <button class="sb g" data-g="girar">${this.girar ? '⏸ Parar giro' : '🔄 Girar'}</button>

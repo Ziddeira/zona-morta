@@ -8,6 +8,12 @@ export const MODELOS = {
   protagonista: {
     url: './assets/protagonista.glb', altura: 1.35,
     estados: { idle: 'parado', walk: 'andando', run: 'correndo' },
+    alt: 'protagonista_arma',
+  },
+  // protagonista já modelado com o fuzil nas mãos (usado com fuzil/SMG/caçadora)
+  protagonista_arma: {
+    url: './assets/protagonista_arma.glb', altura: 1.35, giro: Math.PI, // o arquivo olha para -Z
+    estados: { idle: 'parado', walk: 'andando', run: 'correndo', tiro: 'atirando' },
   },
   zumbi_militar: {
     url: './assets/zumbi_militar.glb', altura: 1.4,
@@ -30,18 +36,26 @@ export const OBJETOS = {
 export const ARMA_3D = {
   pistola:     { obj: 'arma_pistola', anim: 'pistola', bala: 'bala_9mm' },
   escopeta:    { obj: 'arma_escopeta', anim: 'escopeta', bala: 'bala_escopeta' },
-  fuzil:       { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle' },
-  smg:         { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', esc: 0.82 },
-  cacadora:    { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_sniper', esc: 1.08 },
+  fuzil:       { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', alt: true },
+  smg:         { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_rifle', esc: 0.82, alt: true },
+  cacadora:    { obj: 'arma_fuzil', anim: 'rifle', bala: 'bala_sniper', esc: 1.08, alt: true },
   lancachamas: { obj: 'arma_lancachamas', anim: 'lanca', bala: null },
   faca:        { obj: null, anim: 'pistola' },
 };
 export const ANIM_ARMA = {
   pistola:  { idle: 'pistola_parado', walk: 'pistola_andando', run: 'pistola_correndo', walkBack: 'pistola_andando_tras', runBack: 'pistola_correndo_tras', tiro: 'atirando_pistola' },
-  rifle:    { idle: 'rifle_parado', walk: 'rifle_andando', run: 'rifle_correndo', tiro: 'atirando_rifle', recarga: 'recarregando' },
+  rifle:    { idle: 'rifle_parado', walk: 'rifle_andando', run: 'rifle_correndo', tiro: 'atirando_rifle', recarga: 'recarregando',
+              walkTiro: 'rifle_andando_atirando', runTiro: 'rifle_correndo_atirando', walkBack: 'rifle_andando_tras', runBack: 'rifle_andando_tras', walkBackTiro: 'rifle_andando_tras_atirando' },
   escopeta: { idle: 'escopeta_parado', walk: 'escopeta_andando', run: 'escopeta_correndo', tiro: 'atirando_escopeta', recarga: 'recarregando' },
   lanca:    { idle: 'lanca_parado', walk: 'lanca_andando', run: 'lanca_correndo', tiro: 'lanca_atirando', recarga: 'recarregando' },
 };
+// animações do protagonista com o fuzil na mão (modelo alternativo) e o que usar quando ele não carregou
+const ALT_CLIP = {
+  rifle_parado: 'parado', rifle_andando: 'andando', rifle_correndo: 'correndo', atirando_rifle: 'atirando',
+  rifle_andando_atirando: 'andando_atirando', rifle_correndo_atirando: 'correndo_atirando',
+  rifle_andando_tras: 'andando_tras', rifle_andando_tras_atirando: 'andando_tras_atirando',
+};
+const SEM_ALT = { rifle_andando_atirando: 'rifle_andando', rifle_correndo_atirando: 'rifle_correndo', rifle_andando_tras: 'rifle_andando', rifle_andando_tras_atirando: 'rifle_andando' };
 // nomes amigáveis para a galeria
 export const NOMES_ANIM = {
   parado: 'Parado', parado2: 'Parado (olhando)', andando: 'Andando', correndo: 'Correndo',
@@ -54,6 +68,7 @@ export const NOMES_ANIM = {
   vasculhando: 'Vasculhando itens', vasculhando_bau: 'Vasculhando baú', abrindo_bau: 'Abrindo baú', fechando_bau: 'Fechando baú', pegando: 'Pegando algo',
   recrutando: 'Recrutando sobrevivente', escopeta_andando: 'Escopeta andando', escopeta_correndo: 'Escopeta correndo',
   lanca_parado: 'Lança-chamas parado', lanca_andando: 'Lança-chamas andando', lanca_correndo: 'Lança-chamas correndo', lanca_atirando: 'Lança-chamas atirando', andando_frente_arma: 'Andando (arma à frente)', atirando: 'Atirando', triste: 'Parado (triste)',
+  andando_atirando: 'Andando e atirando', andando_tras: 'Andando de costas', andando_tras_atirando: 'De costas atirando', correndo_atirando: 'Correndo e atirando',
 };
 // arma que aparece na mão em cada animação da galeria
 export function armaDaAnim(n) {
@@ -133,15 +148,18 @@ export function criarAnimado(k, opts = {}) {
   const s = c.escala * (opts.scale || 1);
   obj.scale.setScalar(s);
   obj.position.y = -c.minY * s;
+  if (c.def.giro) obj.rotation.y = c.def.giro;
   const group = new THREE.Group(), inner = new THREE.Group();
   inner.add(obj); group.add(inner);
-  const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = 0.02; sh.scale.setScalar(opts.scale || 1); group.add(sh);
+  if (!opts.semSombra) { const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = 0.02; sh.scale.setScalar(opts.scale || 1); group.add(sh); }
   const mixer = new THREE.AnimationMixer(obj);
   const actions = {};
   for (const clip of c.clips) actions[clip.name] = mixer.clipAction(clip);
   const m = { group, inner, obj, mixer, actions, estados: { ...c.def.estados, ...(opts.estados || {}) }, cur: null, curName: '', lock: 0, t: 0, aim: false, animado: true, escala: s };
   m.mao = obj.getObjectByName('mixamorigRightHand');
   mixer.addEventListener('finished', e => { if (e.action === m.cur && !m.travar) m.lock = 0; });
+  // modelo alternativo (protagonista com o fuzil): fica escondido dentro do mesmo grupo
+  if (c.def.alt && cache[c.def.alt]) { m.alt = criarAnimado(c.def.alt, { semSombra: true, scale: opts.scale }); m.alt.group.visible = false; inner.add(m.alt.group); }
   segurarArma(m, opts.arma || null);
   play(m, m.estados.idle);
   return m;
@@ -150,6 +168,8 @@ export function criarAnimado(k, opts = {}) {
 export function segurarArma(m, armaId) {
   m.armaId = armaId;
   const info = ARMA_3D[armaId];
+  m.altOn = !!(m.alt && info && info.alt);
+  if (!m.altOn && m.usandoAlt) mostrarAlt(m, false);
   const alvo = info && info.obj;
   if (!m.armas) { m.armas = []; m.obj.traverse(o => { if (/^arma_/.test(o.name) && o.parent && !/^arma_/.test(o.parent.name)) m.armas.push(o); }); }
   m.arma = null;
@@ -158,9 +178,16 @@ export function segurarArma(m, armaId) {
 const _v = new THREE.Vector3();
 // a arma já vem presa ao osso da mão (Blender); aqui só esconde durante ações sem arma
 function posicionarArma(m) { if (m.arma) m.arma.visible = !m.esconderArma; }
+function mostrarAlt(m, on) { m.usandoAlt = on; m.alt.group.visible = on; m.obj.visible = !on; }
 // toca uma animação; once = toca uma vez e para no último quadro
 export function play(m, name, o = {}) {
   if (Array.isArray(name)) name = name[Math.floor(Math.random() * name.length)];
+  if (m.alt) {
+    const an = m.altOn && ALT_CLIP[name];
+    if (an && m.alt.actions[an]) { if (!m.usandoAlt) { mostrarAlt(m, true); o = { ...o, fade: 0 }; } m.curName = name; return play(m.alt, an, o); }
+    if (m.usandoAlt) { mostrarAlt(m, false); if (m.cur) m.cur.stop(); m.cur = null; }
+  }
+  if (!m.actions[name] && SEM_ALT[name]) name = SEM_ALT[name];
   const a = m.actions[name]; if (!a) return 0;
   if (m.cur === a && !o.restart) { a.timeScale = o.speed ?? 1; return a.getClip().duration; }
   a.reset();
@@ -186,6 +213,7 @@ export function animar(m, dt, speed, opts = {}) {
     else play(m, e.run, { speed: opts.runSpeed ?? 1 });
   }
   m.mixer.update(dt);
+  if (m.usandoAlt) m.alt.mixer.update(dt);
   posicionarArma(m);
 }
 
