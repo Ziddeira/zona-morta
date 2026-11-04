@@ -42,7 +42,7 @@ const game = {
       const lista = Object.entries(ganhos).filter(([, v]) => v > 0).map(([k, v]) => `<div class="it">${ITENS[k].ic}<b>${ITENS[k].nome}</b>${v}</div>`).join('');
       h += `<p style="font-size:18px">✅ Você escapou de <b>${r.local.nome}</b>!</p><p>Prêmio da missão: <span class="money">$${r.dinheiro}</span></p>`;
       h += `<h4>Trouxe na mochila</h4>${lista ? `<div class="grid">${lista}</div>` : '<p class="muted">Nada.</p>'}`;
-      if (vendido) h += `<p class="muted">O estoque lotou: o excesso foi vendido por $${vendido}. Evolua o Paiol.</p>`;
+      if (vendido) h += `<p class="muted">O estoque lotou: o excesso foi vendido por $${vendido}. Evolua o Estoque.</p>`;
       if (r.resgatados.length) h += `<h4>Novos sobreviventes no QG</h4>${r.resgatados.map(sv => `<p>🆘 <b>${sv.nome}</b> — ${PROFISSOES[sv.prof].ic} ${PROFISSOES[sv.prof].nome}. Coloque no Alojamento para trabalhar.</p>`).join('')}`;
     } else {
       h += `<p style="font-size:18px">❌ Missão fracassada</p><p class="muted">${r.motivo || ''}</p><p>Tudo o que estava na mochila (inclusive o que você levou) foi perdido.</p>`;

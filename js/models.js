@@ -275,7 +275,7 @@ export function somZumbi(k, vol = 0.6, dur = 1.6, minGap = 0.3) {
 import { makeChibi } from './engine.js';
 export const ESTADOS_MILITAR_ARMADO = { idle: 'rifle_parado', walk: 'andando_arma', run: 'andando_arma', tiro: 'atirando', morte: 'morrendo' };
 // modelo 3D de cada profissão (o fabricante/mecânico ainda não tem modelo 3D)
-export const MODELO_PROF = { militar: 'militar_vivo', enfermeiro: 'enfermeira', farmaceutico: 'enfermeira', agricultor: 'botanico', pecuarista: 'botanico' };
+export const MODELO_PROF = { militar: 'militar_vivo', enfermeiro: 'enfermeira', farmaceutico: 'enfermeira', agricultor: 'botanico' };
 export function criarSobrevivente(sv, opts = {}) {
   if (sv.prof === 'militar' && modeloPronto('militar_vivo')) {
     return criarAnimado('militar_vivo', { arma: opts.armado ? 'fuzil' : null, estados: opts.armado ? ESTADOS_MILITAR_ARMADO : (opts.preso ? { idle: 'triste' } : {}) });

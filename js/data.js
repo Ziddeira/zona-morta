@@ -50,20 +50,22 @@ export const MOCHILA_BASE = 16, MOCHILA_POR_NIVEL = 6, MOCHILA_MAX = 4;
 export function custoMochila(n) { return { $: 70 * (n + 1), itens: { sucata: 2 + 2 * n, tabua: 0 } }; }
 
 export const ESTRUTURAS = {
-  oficina:    { nome: 'Oficina de Armas', ic: '🛠️', max: 3, desc: 'Fabrica e melhora armas. Fabricantes aqui produzem munição e sucata. Militares aqui melhoram sua precisão.' },
+  oficina:    { nome: 'Oficina de Armas', ic: '🛠️', max: 3, desc: 'Bancada de armas: fabrica e melhora armas e faz munição. Fabricantes aqui produzem munição e sucata. Militares aqui melhoram sua precisão.' },
   enfermaria: { nome: 'Enfermaria',       ic: '🏥', max: 3, desc: 'Produz bandagens. Enfermeiros aqui aumentam sua vida. Farmacêuticos aqui produzem remédios.' },
-  paiol:      { nome: 'Paiol',            ic: '📦', max: 3, desc: 'Aumenta a capacidade de armazenamento do abrigo.' },
   estufa:     { nome: 'Estufa',           ic: '🌱', max: 3, desc: 'Produz verduras sozinha. Agricultores aqui dobram a produção.' },
-  curral:     { nome: 'Curral',           ic: '🐄', max: 3, desc: 'Produz carne sozinho. Pecuaristas aqui dobram a produção.' },
+  estoque:    { nome: 'Estoque',          ic: '🗄️', max: 3, desc: 'Prateleiras e armários: cada nível aumenta o espaço para guardar itens.' },
+  alojamento: { nome: 'Alojamento',       ic: '🛏️', max: 3, desc: 'Camas de verdade: sobreviventes descansados produzem +15% em todas as salas por nível.' },
 };
 export const CUSTO_ESTRUTURA = {
   oficina:    [{ $: 100, itens: { tabua: 4, sucata: 3 } }, { $: 280, itens: { tabua: 6, engrenagem: 3 } }, { $: 600, itens: { ferramenta: 4, engrenagem: 5 } }],
   enfermaria: [{ $: 90,  itens: { tabua: 4 } },            { $: 240, itens: { tabua: 6, remedio: 2 } },   { $: 520, itens: { ferramenta: 3, remedio: 4 } }],
-  paiol:      [{ $: 70,  itens: { tabua: 6 } },            { $: 200, itens: { tabua: 10, sucata: 4 } },   { $: 450, itens: { tabua: 12, ferramenta: 3 } }],
   estufa:     [{ $: 80,  itens: { tabua: 4, fio: 1 } },    { $: 220, itens: { tabua: 6, fio: 3 } },       { $: 480, itens: { ferramenta: 3, fio: 4 } }],
-  curral:     [{ $: 140, itens: { tabua: 8 } },            { $: 300, itens: { tabua: 10, comida: 4 } },   { $: 560, itens: { ferramenta: 3, comida: 6 } }],
+  estoque:    [{ $: 70,  itens: { tabua: 6 } },            { $: 200, itens: { tabua: 10, sucata: 4 } },   { $: 450, itens: { tabua: 12, ferramenta: 3 } }],
+  alojamento: [{ $: 60,  itens: { tabua: 4 } },            { $: 180, itens: { tabua: 8, fio: 2 } },       { $: 420, itens: { tabua: 10, ferramenta: 2 } }],
 };
-export const ESTOQUE_BASE = 60, ESTOQUE_POR_PAIOL = 50;
+// munição feita na bancada da oficina (1 pente)
+export const FAB_MUNICAO = { $: 6, itens: { sucata: 1 } };
+export const ESTOQUE_BASE = 60, ESTOQUE_POR_NIVEL = 50;
 
 export const PROFISSOES = {
   enfermeiro:   { nome: 'Enfermeiro(a)', ic: '🩺', posto: 'enfermaria', base: '+20 de vida máxima', campo: '+20 de vida máxima' },
@@ -71,7 +73,6 @@ export const PROFISSOES = {
   militar:      { nome: 'Militar', ic: '🎖️', posto: 'oficina', base: '-25% de dispersão dos tiros', campo: '-25% de dispersão dos tiros' },
   fabricante:   { nome: 'Fabricante', ic: '🏭', posto: 'oficina', base: 'Produz munição e sucata', campo: '+1 pente de munição a cada horda' },
   agricultor:   { nome: 'Agricultor(a)', ic: '🌾', posto: 'estufa', base: 'Estufa produz o dobro', campo: 'Saqueia 25% mais rápido' },
-  pecuarista:   { nome: 'Pecuarista', ic: '🤠', posto: 'curral', base: 'Curral produz o dobro', campo: 'Saqueia 25% mais rápido' },
 };
 export const NOMES = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Fábio', 'Gabi', 'Heitor', 'Iara', 'João', 'Kátia', 'Lucas', 'Marta', 'Nilo', 'Olga', 'Paulo', 'Rita', 'Sérgio', 'Tânia', 'Vítor', 'Wesley', 'Yara', 'Zeca', 'Bia', 'Caio', 'Duda', 'Edu', 'Flávia', 'Igor', 'Lia', 'Mauro', 'Neide', 'Otto', 'Pri', 'Rafa', 'Sol'];
 

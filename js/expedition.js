@@ -284,7 +284,7 @@ export class Expedition {
     }
   }
   novoResgatado() {
-    const profs = ['enfermeiro', 'farmaceutico', 'militar', 'militar', 'fabricante', 'agricultor', 'pecuarista'];
+    const profs = ['enfermeiro', 'farmaceutico', 'militar', 'militar', 'fabricante', 'agricultor'];
     const skins = ['#f1c9a5', '#e0b48c', '#c68e5f', '#9c6640', '#6e4528', '#4a2f1d'];
     const nomes = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Fábio', 'Gabi', 'Heitor', 'Iara', 'João', 'Kátia', 'Lucas', 'Marta', 'Nilo', 'Rita', 'Sérgio', 'Tânia', 'Vítor', 'Yara', 'Zeca'];
     return { id: null, nome: pick(nomes), prof: pick(profs), posto: null, skin: pick(skins), shirt: pick(['#a0522d', '#5f7f3f', '#7a4f8a', '#b08a3a', '#3f6f8f', '#8f3f3f']), hair: pick(['#2a1a10', '#4a2f1d', '#111', '#8a6a3a', '#bbb']) };

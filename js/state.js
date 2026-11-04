@@ -1,4 +1,4 @@
-import { ITENS, ESTRUTURAS, PROFISSOES, NOMES, ESTOQUE_BASE, ESTOQUE_POR_PAIOL, MOCHILA_BASE, MOCHILA_POR_NIVEL, BALAS_POR_PENTE } from './data.js';
+import { ITENS, ESTRUTURAS, PROFISSOES, NOMES, ESTOQUE_BASE, ESTOQUE_POR_NIVEL, MOCHILA_BASE, MOCHILA_POR_NIVEL, BALAS_POR_PENTE } from './data.js';
 import { pick } from './engine.js';
 
 let KEY = 'zonamorta_save_v1';
@@ -10,7 +10,7 @@ export function novoEstado() {
     estoque: { tabua: 6, bandagem: 3, municao: 4, sucata: 2 },
     armas: { pistola: 1, faca: 1 },
     mochila: 0,
-    estruturas: { oficina: 0, enfermaria: 0, paiol: 0, estufa: 0, curral: 0 },
+    estruturas: { oficina: 0, enfermaria: 0, estufa: 0, estoque: 0, alojamento: 0 },
     pend: {}, last: Date.now(),
     sobreviventes: [],
     extraidos: {},
@@ -20,8 +20,20 @@ export function novoEstado() {
 }
 export let S = novoEstado();
 export function carregar() {
-  try { const t = localStorage.getItem(KEY); if (t) { S = Object.assign(novoEstado(), JSON.parse(t)); return true; } } catch (_) {}
+  try { const t = localStorage.getItem(KEY); if (t) { S = Object.assign(novoEstado(), JSON.parse(t)); migrar(); return true; } } catch (_) {}
   return false;
+}
+// saves antigos: o Paiol virou o nível do Estoque; Curral e Pecuarista saíram do jogo
+function migrar() {
+  const E = S.estruturas;
+  if ('paiol' in E) { E.estoque = Math.max(E.estoque || 0, E.paiol); delete E.paiol; }
+  delete E.curral;
+  for (const k of Object.keys(ESTRUTURAS)) E[k] = E[k] || 0;
+  if (S.pend) { delete S.pend.curral; delete S.pend.paiol; }
+  for (const sv of S.sobreviventes) {
+    if (sv.prof === 'pecuarista') sv.prof = 'agricultor';
+    if (sv.posto && !ESTRUTURAS[sv.posto]) sv.posto = null;
+  }
 }
 export function salvar() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} }
 export function resetar() { S = novoEstado(); salvar(); }
@@ -32,17 +44,17 @@ export function novoEstadoTeste() {
   st.estoque = {}; for (const k in ITENS) st.estoque[k] = 99;
   st.armas = { pistola: 4, faca: 4, escopeta: 4, fuzil: 4, smg: 4, cacadora: 4, lancachamas: 4 };
   st.mochila = 4;
-  st.estruturas = { oficina: 3, enfermaria: 3, paiol: 3, estufa: 3, curral: 3 };
+  st.estruturas = { oficina: 3, enfermaria: 3, estufa: 3, estoque: 3, alojamento: 3 };
   for (let a = 0; a < 3; a++) for (let l = 0; l < 4; l++) st.extraidos[`${a}-${l}`] = true;
   S = st;
-  const postos = { enfermeiro: 'enfermaria', farmaceutico: 'enfermaria', militar: 'oficina', fabricante: 'oficina', agricultor: 'estufa', pecuarista: 'curral' };
+  const postos = { enfermeiro: 'enfermaria', farmaceutico: 'enfermaria', militar: 'oficina', fabricante: 'oficina', agricultor: 'estufa' };
   for (const prof in PROFISSOES) { const sv = novoSobrevivente(); sv.prof = prof; sv.posto = postos[prof]; S.sobreviventes.push(sv); }
   return S;
 }
 export function temSave() { try { return !!localStorage.getItem(KEY); } catch (_) { return false; } }
 
 export const capMochila = () => S.teste ? 99 : MOCHILA_BASE + MOCHILA_POR_NIVEL * S.mochila;
-export const capEstoque = () => S.teste ? 99999 : ESTOQUE_BASE + ESTOQUE_POR_PAIOL * S.estruturas.paiol;
+export const capEstoque = () => S.teste ? 99999 : ESTOQUE_BASE + ESTOQUE_POR_NIVEL * (S.estruturas.estoque || 0);
 export const usoEstoque = () => Object.values(S.estoque).reduce((a, b) => a + b, 0);
 
 // adiciona ao estoque; o que não couber é vendido pela metade do preço
@@ -98,7 +110,7 @@ export function bonusExpedicao(esquadrao) {
   const sq = S.sobreviventes.filter(s => esquadrao.includes(s.id));
   b.cura = 1 + 0.5 * sq.filter(s => s.prof === 'farmaceutico').length;
   b.pentePorHorda = sq.filter(s => s.prof === 'fabricante').length;
-  b.saque = 1 + 0.25 * sq.length + 0.25 * sq.filter(s => s.prof === 'agricultor' || s.prof === 'pecuarista').length;
+  b.saque = 1 + 0.25 * sq.length + 0.25 * sq.filter(s => s.prof === 'agricultor').length;
   return b;
 }
 
@@ -106,7 +118,7 @@ export function bonusExpedicao(esquadrao) {
 export function taxas() {
   // itens por minuto, por estrutura
   const t = {};
-  const mult = est => 1 + 0.5 * trabalhadores(est).length;
+  const mult = est => (1 + 0.5 * trabalhadores(est).length) * (1 + 0.15 * (S.estruturas.alojamento || 0));
   const esp = (est, prof) => trabalhadores(est).filter(s => s.prof === prof).length;
   const E = S.estruturas;
   if (E.enfermaria) {
@@ -114,7 +126,6 @@ export function taxas() {
     const f = esp('enfermaria', 'farmaceutico'); if (f) t.enfermaria.remedio = 0.2 * f * E.enfermaria;
   }
   if (E.estufa) t.estufa = { verdura: 0.5 * E.estufa * mult('estufa') * (1 + esp('estufa', 'agricultor')) };
-  if (E.curral) t.curral = { carne: 0.33 * E.curral * mult('curral') * (1 + esp('curral', 'pecuarista')) };
   if (E.oficina) { const f = esp('oficina', 'fabricante'); if (f) t.oficina = { municao: 0.3 * f * E.oficina, sucata: 0.3 * f * E.oficina }; }
   return t;
 }
